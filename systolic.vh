@@ -36,7 +36,7 @@
 `define OPC_WB_PSRAM            ('h5)
 
 `define OPC_WIDTH               (3)
-`define INSTR_WIDTH             (32)
+`define REQ_WIDTH               (32)
 
 `define PARAM_WIDTH             (16)
 `define PARAM_TRG_WIDTH         (3)
