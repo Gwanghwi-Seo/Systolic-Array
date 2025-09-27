@@ -30,10 +30,10 @@
 
 `define OPC_NOP                 ('h0)
 `define OPC_SET_PARAM           ('h1)
-`define OPC_ST_SRAM             ('h2)
-`define OPC_MATMUL              ('h3)
-`define OPC_WB_PARAM            ('h4)
-`define OPC_WB_PSRAM            ('h5)
+`define OPC_GET_PARAM           ('h2)
+`define OPC_ST_SRAM             ('h3)
+`define OPC_LD_SRAM             ('h4)
+`define OPC_MATMUL              ('h5)
 
 `define OPC_WIDTH               (3)
 `define REQ_WIDTH               (32)
@@ -63,9 +63,9 @@
 `define PARAM_OC                ('h2)
 `define PARAM_ISRAM_BASE_ADDR   ('h3)
 `define PARAM_WSRAM_BASE_ADDR   ('h4)
-`define PARAM_PSRAM_BASE_ADDR   ('h5)
+// `define PARAM_PSRAM_BASE_ADDR   ('h5)
 
-// PARAM
+// Target SRAM
 `define TRG_ISRAM               ('h0)
 `define TRG_WSRAM               ('h1)
 `define TRG_PSRAM               ('h2)
