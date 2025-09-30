@@ -13,13 +13,13 @@ module systolic_pe (
     output reg [`DATA_WIDTH-1:0]            MAT_A_O,
     
     // matrix B (weight stationary)
-    input [`ROW_ID_WIDTH-1:0]               PE_ROW_ID_I,
+    input [`PE_ROW_ID_WIDTH-1:0]            PE_ROW_ID_I,
 
-    input [`ROW_ID_WIDTH-1:0]               EN_PE_ROW_ID_I,
+    input [`PE_ROW_ID_WIDTH-1:0]            EN_PE_ROW_ID_I,
     input                                   MAT_B_VALID_I,
     input signed [`DATA_WIDTH-1:0]          MAT_B_I,
 
-    output reg [`ROW_ID_WIDTH-1:0]          EN_PE_ROW_ID_O,
+    output reg [`PE_ROW_ID_WIDTH-1:0]       EN_PE_ROW_ID_O,
     output reg                              MAT_B_VALID_O,
     output reg [`DATA_WIDTH-1:0]            MAT_B_O,
 

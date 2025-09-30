@@ -1,8 +1,8 @@
 `include "systolic.vh"
 
 module systolic_ctrl_decoder(
-    input CLK,
-    input RST_N,
+    input                           CLK,
+    input                           RST_N,
 
     // Top IF
     input  [`OPC_WIDTH-1:0]         REQ_CPU_OPC_I,
