@@ -1,7 +1,7 @@
 // pe.v (수정 완료)
 `include "systolic.vh"
 
-module pe (
+module systolic_pe (
     input                                   CLK,
     input                                   RST_N,
 

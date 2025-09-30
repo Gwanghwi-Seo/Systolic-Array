@@ -1,18 +1,18 @@
 // pe_array.v (수정 완료)
 `include "systolic.vh"
 
-module pe_array (
+module systolic_pe_array (
     input                                       CLK,
     input                                       RST_N,
 
     // matrix A (Inputs for the first column)
-    input [`DATA_WIDTH*`PE_ROW-1:0]             MAT_A_I,
     input [`PE_ROW-1:0]                         MAT_A_VALID_I,
+    input [`DATA_WIDTH*`PE_ROW-1:0]             MAT_A_I,
     
     // matrix B (Inputs for the first row)
     input [`ROW_ID_WIDTH*`PE_COL-1:0]           EN_PE_ROW_ID_I,
-    input [`DATA_WIDTH*`PE_COL-1:0]             MAT_B_I,
     input [`PE_COL-1:0]                         MAT_B_VALID_I,
+    input [`DATA_WIDTH*`PE_COL-1:0]             MAT_B_I,
 
     // PSUM (Inputs for the first row)
     input [`PE_COL-1:0]                         MAT_PSUM_VALID_I,
@@ -20,8 +20,8 @@ module pe_array (
     input [`PSUM_WIDTH*`PE_COL-1:0]             MAT_PSUM_I,
 
     // PSUM (Outputs from the last row)
-    output [`PSUM_WIDTH*`PE_COL-1:0]            MAT_PSUM_O,
     output [`PE_COL-1:0]                        MAT_PSUM_VALID_O,
+    output [`PSUM_WIDTH*`PE_COL-1:0]            MAT_PSUM_O,
     output [`ADDR_WIDTH*`PE_COL-1:0]            MAT_PSUM_ADDR_O
 );
 
@@ -95,7 +95,7 @@ module pe_array (
 
         // Connect outputs from the last row
         for (n = 0; n < `PE_COL; n = n + 1) begin
-            assign MAT_PSUM_VALID_O[n]                          = mat_psum_valid[`PE_ROW][n];
+            assign MAT_PSUM_VALID_O[n]                         	 = mat_psum_valid[`PE_ROW][n];
             assign MAT_PSUM_ADDR_O[`ADDR_WIDTH*n +: `ADDR_WIDTH] = mat_psum_addr[`PE_ROW][n];
             assign MAT_PSUM_O[`PSUM_WIDTH*n +: `PSUM_WIDTH]      = mat_psum_data[`PE_ROW][n];
         end

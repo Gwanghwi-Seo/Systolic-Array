@@ -219,7 +219,7 @@ module systolic_ctrl_decoder(
         end
     end
 
-    assign cpl_get_param = { {(`REQ_WIDTH-`PARAM_WIDTH){1'b0}}, 
+    assign cpl_get_param = { {(`REQ_WIDTH -`PARAM_WIDTH){1'b0}}, 
                              (req_param_trg == `PARAM_S)                 ? param_s_r :
                              (req_param_trg == `PARAM_IC)                ? param_ic_r :
                              (req_param_trg == `PARAM_OC)                ? param_oc_r :
@@ -260,5 +260,5 @@ module systolic_ctrl_decoder(
     assign REQ_PSRAM_WDATA_O   = is_psram_access && (req_opc_r == `ST_SRAM)? req_sram_wdata : 'h0;
     assign REQ_PSRAM_ADDR_O    = is_psram_access ? req_sram_addr : 'h0;
 
-    assign MATMUL_START_O = (current_state_r[ST_MATMUL_REQ]) ? 1'b1 : 1'b0;
+    assign MATMUL_START_O      = (current_state_r[ST_MATMUL_REQ]) ? 1'b1 : 1'b0;
 endmodule
