@@ -26,7 +26,7 @@
 `define PE_ROW                  (8)
 `define PE_COL                  (8)
 
-`define ROW_ID_WIDTH            `LOG2(`PE_ROW)
+`define PE_ROW_ID_WIDTH         `LOG2(`PE_ROW)
 
 `define OPC_NOP                 ('h0)
 `define OPC_SET_PARAM           ('h1)
