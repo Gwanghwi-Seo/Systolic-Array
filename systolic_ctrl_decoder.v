@@ -17,8 +17,8 @@ module systolic_ctrl_decoder(
     // SRAMC IF
     output                          REQ_ISRAM_EN_O, // Active low
     output                          REQ_ISRAM_WE_O,
-    output [`DATA_WIDTH-1:0]        REQ_ISRAM_WDATA_O,
     output [`ADDR_WIDTH-1:0]        REQ_ISRAM_ADDR_O,
+    output [`DATA_WIDTH-1:0]        REQ_ISRAM_WDATA_O,
     output [`BANK_NUM_WIDTH-1:0]    REQ_ISRAM_BANK_NUM_O,
 
     input                           CPL_ISRAM_VALID_I,
@@ -26,8 +26,8 @@ module systolic_ctrl_decoder(
 
     output                          REQ_WSRAM_EN_O, // Active low
     output                          REQ_WSRAM_WE_O,
-    output [`DATA_WIDTH-1:0]        REQ_WSRAM_WDATA_O,
     output [`ADDR_WIDTH-1:0]        REQ_WSRAM_ADDR_O,
+    output [`DATA_WIDTH-1:0]        REQ_WSRAM_WDATA_O,
     output [`BANK_NUM_WIDTH-1:0]    REQ_WSRAM_BANK_NUM_O,
 
     input                           CPL_WSRAM_VALID_I,
@@ -36,6 +36,7 @@ module systolic_ctrl_decoder(
     output                          REQ_PSRAM_EN_O, // Active low
     output                          REQ_PSRAM_WE_O,
     output [`ADDR_WIDTH-1:0]        REQ_PSRAM_ADDR_O,
+    output [`PSUM_WIDTH-1:0]        REQ_PSRAM_WDATA_O,
     output [`BANK_NUM_WIDTH-1:0]    REQ_PSRAM_BANK_NUM_O,
 
     input                           CPL_PSRAM_VALID_I,
@@ -66,7 +67,7 @@ module systolic_ctrl_decoder(
 
     localparam  NUM_STATE = 6;
 
-    reg [NUM_STATE-1:0] current_state_r, next_state_r;
+    reg [NUM_STATE-1:0]         current_state_r, next_state_r;
 
     // req packet fields
     reg [`OPC_WIDTH-1:0]        req_opc_r;
@@ -163,8 +164,8 @@ module systolic_ctrl_decoder(
     // Request fetch
     always @(posedge CLK or negedge RST_N) begin
         if (!RST_N) begin
-            req_opc_r  <= '0;
-            req_data_r <= '0;
+            req_opc_r  <= 'h0;
+            req_data_r <= 'h0;
         end
         else begin
             if (REQ_CPU_VALID_I && REQ_CPU_READY_O) begin

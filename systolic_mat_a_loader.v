@@ -14,8 +14,8 @@ module systolic_mat_a_loader (
 );
 
     // Pipeline registers for both Data and its Validity signal
-    reg [`DATA_WIDTH-1:0] mat_a_data_r [0:`PE_ROW-1][0:`PE_ROW-1];
     reg                   mat_a_valid_r[0:`PE_ROW-1][0:`PE_ROW-1];
+    reg [`DATA_WIDTH-1:0] mat_a_data_r [0:`PE_ROW-1][0:`PE_ROW-1];
 
     integer row, col;
 
@@ -47,7 +47,7 @@ module systolic_mat_a_loader (
 
     genvar k;
     generate
-        for (k = 0; k < `PE_ROW; k = k + 1) begin : gen_output_logic
+        for (k = 0; k < `PE_ROW; k = k + 1) begin : G_A_LOADER
             assign MAT_A_O[`DATA_WIDTH*k +: `DATA_WIDTH]  = mat_a_data_r[k][k];
             assign MAT_A_VALID_O[k]                       = mat_a_valid_r[k][k];
         end
