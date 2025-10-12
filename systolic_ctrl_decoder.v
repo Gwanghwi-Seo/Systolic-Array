@@ -51,7 +51,6 @@ module systolic_ctrl_decoder(
 
     output [`PARAM_WIDTH-1:0]       PARAM_ISRAM_BASE_ADDR_O,
     output [`PARAM_WIDTH-1:0]       PARAM_WSRAM_BASE_ADDR_O,
-    output [`PARAM_WIDTH-1:0]       PARAM_PSRAM_BASE_ADDR_O, 
 );
 
     // State definition
@@ -262,4 +261,10 @@ module systolic_ctrl_decoder(
     assign REQ_PSRAM_ADDR_O    = is_psram_access ? req_sram_addr : 'h0;
 
     assign MATMUL_START_O      = (current_state_r[ST_MATMUL_REQ]) ? 1'b1 : 1'b0;
+    assign PARAM_S_O           = param_s_r;
+    assign PARAM_IC_O          = param_ic_r;
+    assign PARAM_OC_O          = param_oc_r;
+
+    assign PARAM_ISRAM_BASE_ADDR_O = param_isram_base_addr_r;
+    assign PARAM_WSRAM_BASE_ADDR_O = param_wsram_base_addr_r;
 endmodule

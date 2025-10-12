@@ -1,7 +1,7 @@
 `ifndef __SYSTOLIC_VH__
 `define __SYSTOLIC_VH__
 
-// ISA v1
+`define SIM // for simulation, comment out for synthesis (FPGA)
 
 `define LOG2(x) (\
         (x <= 1)      ? 0 : \
