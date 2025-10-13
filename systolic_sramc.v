@@ -39,13 +39,13 @@ module systolic_sramc (
     input [`PE_COL-1:0]             REQ_WSRAM1_EN_I,
     input [`ADDR_WIDTH-1:0]         REQ_WSRAM1_ADDR_I,
 
-    input [`PE_COL-1:0]             REQ_PSRAM1_RD_EN_I,
-    input [`ADDR_WIDTH-1:0]         REQ_PSRAM1_RD_ADDR_I,
+    input [`PE_COL-1:0]             REQ_MATMUL_PSRAM1_EN_I,
+    input [`ADDR_WIDTH-1:0]         REQ_MATMUL_PSRAM1_ADDR_I,
 
     // pe_array IF
-    input [`PE_COL-1:0]             REQ_PSRAM1_WR_EN_I,
-    input [`ADDR_WIDTH-1:0]         REQ_PSRAM1_WR_ADDR_I,
-    input [`PSUM_WIDTH*`PE_COL-1:0] REQ_PSRAM1_WDATA_I
+    input [`PE_COL-1:0]             REQ_PEARR_PSRAM1_EN_I,
+    input [`ADDR_WIDTH-1:0]         REQ_PEARR_PSRAM1_ADDR_I,
+    input [`PSUM_WIDTH*`PE_COL-1:0] REQ_PEARR_PSRAM1_WDATA_I
 
     // Input, Weight, PSUM Loader If
     output [`PE_ROW-1:0]            CPL_ISRAM1_VALID_O,
@@ -54,8 +54,8 @@ module systolic_sramc (
     output [`PE_COL-1:0]            CPL_WSRAM1_VALID_O,
     output [`DATA_WIDTH*`PE_COL-1:0]CPL_WSRAM1_RDATA_O,
 
-    output [`PE_COL-1:0]            CPL_PSRAM1_VALID_O,
-    output [`PSUM_WIDTH*`PE_COL-1:0]CPL_PSRAM1_RDATA_O,
+    output [`PE_COL-1:0]            CPL_LOADER_PSRAM1_VALID_O,
+    output [`PSUM_WIDTH*`PE_COL-1:0]CPL_LOADER_PSRAM1_RDATA_O,
 );
 
     // Input SRAM (ISRAM)
@@ -77,11 +77,17 @@ module systolic_sramc (
     wire [`PE_COL-1:0]              wsram_bank_sel_onecold;
 
     // Partial Sum SRAM (PSRAM)
-    wire [`PE_COL-1:0]              cen_psram_bank;
-    wire [`PE_COL-1:0]              wen_psram_bank;
-    wire [`ADDR_WIDTH-1:0]          a_psram;
-    wire [`PSUM_WIDTH*`PE_COL-1:0]  d_psram_bank;
-    wire [`PSUM_WIDTH*`PE_COL-1:0]  q_psram_bank;
+    wire [`PE_COL-1:0]              cen_psram_p0_bank;
+    wire [`PE_COL-1:0]              wen_psram_p0_bank;
+    wire [`ADDR_WIDTH-1:0]          a_psram_p0;
+    wire [`PSUM_WIDTH*`PE_COL-1:0]  d_psram_p0_bank;
+    wire [`PSUM_WIDTH*`PE_COL-1:0]  q_psram_p0_bank;
+
+    wire [`PE_COL-1:0]              cen_psram_p1_bank;
+    wire [`PE_COL-1:0]              wen_psram_p1_bank;
+    wire [`ADDR_WIDTH-1:0]          a_psram_p1;
+    wire [`PSUM_WIDTH*`PE_COL-1:0]  d_psram_p1_bank;
+    wire [`PSUM_WIDTH*`PE_COL-1:0]  q_psram_p1_bank;
 
     wire [`PE_COL-1:0]              psram_bank_sel_onecold;
 
@@ -122,6 +128,9 @@ module systolic_sramc (
     assign a_wsram = ~REQ_WSRAM0_EN_I ? REQ_WSRAM0_ADDR_I : REQ_WSRAM1_ADDR_I;
     assign d_wsram = REQ_WSRAM0_WDATA_I;
 
+    // PSRAM Usage: Decoder R/W, Matmul R/W, PE Array Write
+    // PSRAM port 0: Decoder read/write, Matmul read only
+    // PSRAM port 1: PE Array write only
     generate
         for (col = 0; col < `PE_COL; col = col + 1) begin: ASSIGN_PSRAM_BANK
             assign cen_psram_bank[col] = ~REQ_PSRAM0_EN_I ? psram_bank_sel_onecold[col] : REQ_PSRAM1_EN_I[col];
@@ -130,6 +139,13 @@ module systolic_sramc (
         end
     endgenerate
     assign a_psram = ~REQ_PSRAM0_EN_I ? REQ_PSRAM0_ADDR_I : REQ_PSRAM1_ADDR_I;
+
+    generate
+        for (col = 0; col < `PE_COL; col = col + 1) begin: ASSIGN_PSRAM_P0
+            assign cen_psram_p0_bank[col] = ~REQ_PSRAM0_EN_I ? psram_bank_sel_onecold[col] : REQ_MATMUL_PSRAM1_EN_I[col];
+            assign wen_psram_p0_bank[col] = ~REQ_PSRAM0_EN_I ? REQ_PSRAM0_WE_I : 
+        end
+    endgenerate
 
     generate
         for (row = 0; row < `PE_ROW; row = row + 1) begin : GEN_ISRAM
