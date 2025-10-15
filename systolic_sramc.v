@@ -9,7 +9,7 @@ module systolic_sramc (
     input                           REQ_DEC_ISRAM_WE_I,
     input [`ADDR_WIDTH-1:0]         REQ_DEC_ISRAM_ADDR_I,
     input [`DATA_WIDTH-1:0]         REQ_DEC_ISRAM_WDATA_I
-    input [`BANK_NUM_WIDTH-1:0]     REQ_DEC_ISRAM_BANK_NUM_I, 
+    input [`BANK_NUM_WIDTH-1:0]     REQ_DEC_ISRAM_BANK_NUM_I,
 
     output                          CPL_DEC_ISRAM_VALID_O,
     output [`DATA_WIDTH-1:0]        CPL_DEC_ISRAM_RDATA_O,
@@ -18,7 +18,7 @@ module systolic_sramc (
     input                           REQ_DEC_WSRAM_WE_I,
     input [`ADDR_WIDTH-1:0]         REQ_DEC_WSRAM_ADDR_I,
     input [`DATA_WIDTH-1:0]         REQ_DEC_WSRAM_WDATA_I
-    input [`BANK_NUM_WIDTH-1:0]     REQ_DEC_WSRAM_BANK_NUM_I, 
+    input [`BANK_NUM_WIDTH-1:0]     REQ_DEC_WSRAM_BANK_NUM_I,
 
     output                          CPL_DEC_WSRAM_VALID_O,
     output [`DATA_WIDTH-1:0]        CPL_DEC_WSRAM_RDATA_O,
@@ -27,7 +27,7 @@ module systolic_sramc (
     input                           REQ_DEC_PSRAM_WE_I,
     input [`ADDR_WIDTH-1:0]         REQ_DEC_PSRAM_ADDR_I,
     input [`PSUM_WIDTH-1:0]         REQ_DEC_PSRAM_WDATA_I
-    input [`BANK_NUM_WIDTH-1:0]     REQ_DEC_PSRAM_BANK_NUM_I, 
+    input [`BANK_NUM_WIDTH-1:0]     REQ_DEC_PSRAM_BANK_NUM_I,
 
     output                          CPL_DEC_PSRAM_VALID_O,
     output [`PSUM_WIDTH-1:0]        CPL_DEC_PSRAM_RDATA_O,
@@ -239,10 +239,10 @@ module systolic_sramc (
             dec_psram_bank_num_r <= 'h0;
         end
         else begin
-            if (~REQ_DEC_ISRAM_EN_I) 
+            if (~REQ_DEC_ISRAM_EN_I)
                 dec_isram_bank_num_r <= REQ_DEC_ISRAM_BANK_NUM_I;
 
-            if (~REQ_DEC_WSRAM_EN_I) 
+            if (~REQ_DEC_WSRAM_EN_I)
                 dec_wsram_bank_num_r <= REQ_DEC_WSRAM_BANK_NUM_I;
 
             if (~REQ_DEC_PSRAM_EN_I)
@@ -259,7 +259,7 @@ module systolic_sramc (
             mat_isram_valid_r <= 'h0;
             mat_wsram_valid_r <= 'h0;
             mat_psram_valid_r <= 'h0;
-        end 
+        end
         else begin
             // Active low
             dec_isram_valid_r <= ~REQ_DEC_ISRAM_EN_I & REQ_DEC_ISRAM_WE_I; // WE_I -> 1: Read
@@ -280,14 +280,14 @@ module systolic_sramc (
     assign CPL_DEC_WSRAM_RDATA_O = dec_wsram_valid_r ? q_wsram_bank[`DATA_WIDTH*dec_wsram_bank_num_r +: `DATA_WIDTH] : 'h0;
 
     assign CPL_DEC_PSRAM_VALID_O = dec_psram_valid_r;
-    assign CPL_DEC_PSRAM_RDATA_O = dec_psram_valid_r ? q_psram_bank[`PSUM_WIDTH*psram0_bank_num_r +: `PSUM_WIDTH] : 'h0;
+    assign CPL_DEC_PSRAM_RDATA_O = dec_psram_valid_r ? q_psram_bank[`PSUM_WIDTH*dec_psram_bank_num_r +: `PSUM_WIDTH] : 'h0;
 
-    assign CPL_ISRAM1_VALID_O = isram1_valid_r;
-    assign CPL_ISRAM1_RDATA_O = |isram1_valid_r ? q_isram_bank : 'h0;
+    assign CPL_LOADER_ISRAM_VALID_O = mat_isram_valid_r;
+    assign CPL_LOADER_ISRAM_RDATA_O = |mat_isram_valid_r ? q_isram_bank : 'h0;
 
-    assign CPL_WSRAM1_VALID_O = wsram1_valid_r;
-    assign CPL_WSRAM1_RDATA_O = |wsram1_valid_r ? q_wsram_bank : 'h0;
+    assign CPL_LOADER_WSRAM_VALID_O = mat_wsram_valid_r;
+    assign CPL_LOADER_WSRAM_RDATA_O = |mat_wsram_valid_r ? q_wsram_bank : 'h0;
 
-    assign CPL_PSRAM1_VALID_O = psram1_valid_r;
-    assign CPL_PSRAM1_RDATA_O = |psram1_valid_r ? q_psram_bank : 'h0;
+    assign CPL_LOADER_PSRAM_VALID_O = mat_psram_valid_r;
+    assign CPL_LOADER_PSRAM_RDATA_O = |mat_psram_valid_r ? q_psram_p0_bank : 'h0;
 endmodule

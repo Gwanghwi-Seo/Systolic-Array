@@ -116,7 +116,8 @@ module systolic_ctrl_decoder(
                         next_state_r = (1 << ST_DONE);
                     end
                     `OPC_SET_PARAM: begin
-                        next_state_r = (1 << ST_DONE);
+                        // next_state_r = (1 << ST_DONE);
+                        next_state_r = (1 << ST_IDLE);
                     end
                     `OPC_GET_PARAM: begin
                         next_state_r = (1 << ST_DONE);
