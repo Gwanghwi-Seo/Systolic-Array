@@ -48,9 +48,6 @@ module systolic_ctrl_decoder(
     output [`PARAM_WIDTH-1:0]       PARAM_S_O,
     output [`PARAM_WIDTH-1:0]       PARAM_IC_O,
     output [`PARAM_WIDTH-1:0]       PARAM_OC_O,
-
-    output [`PARAM_WIDTH-1:0]       PARAM_ISRAM_BASE_ADDR_O,
-    output [`PARAM_WIDTH-1:0]       PARAM_WSRAM_BASE_ADDR_O,
 );
 
     // State definition
@@ -192,10 +189,6 @@ module systolic_ctrl_decoder(
                     param_ic_r <= req_param_data;
                 else if (req_param_trg == `PARAM_OC)
                     param_oc_r <= req_param_data;
-                else if (req_param_trg == `PARAM_ISRAM_BASE_ADDR)
-                    param_isram_base_addr_r <= req_param_data;
-                else if (req_param_trg == `PARAM_WSRAM_BASE_ADDR)
-                    param_wsram_base_addr_r <= req_param_data;
             end
         end
     end
@@ -221,11 +214,9 @@ module systolic_ctrl_decoder(
     end
 
     assign cpl_get_param = { {(`REQ_WIDTH -`PARAM_WIDTH){1'b0}}, 
-                             (req_param_trg == `PARAM_S)                 ? param_s_r :
-                             (req_param_trg == `PARAM_IC)                ? param_ic_r :
-                             (req_param_trg == `PARAM_OC)                ? param_oc_r :
-                             (req_param_trg == `PARAM_ISRAM_BASE_ADDR)   ? param_isram_base_addr_r :
-                             (req_param_trg == `PARAM_WSRAM_BASE_ADDR)   ? param_wsram_base_addr_r : 'h0 };
+                             (req_param_trg == `PARAM_S)   ? param_s_r  :
+                             (req_param_trg == `PARAM_IC)  ? param_ic_r :
+                             (req_param_trg == `PARAM_OC)  ? param_oc_r : 'h0 };
 
     assign cpl_ld_sram =    (req_sram_addr == `ISRAM_ADDR) ? {16'h0, ld_isram_rdata_r} :
                             (req_sram_addr == `WSRAM_ADDR) ? {16'h0, ld_wsram_rdata_r} :
