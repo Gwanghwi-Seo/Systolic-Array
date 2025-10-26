@@ -1,5 +1,9 @@
 `include "systolic.vh"
 
+// Oct 26 2025
+// Todo: add final signal when the last iteration of matrix multiplication
+// (psum loader), last signal accepted -> FSM state will changed to ST_IDLE.
+
 module systolic_ctrl_matmul (
     input                            CLK,
     input                            RST_N,
@@ -7,11 +11,9 @@ module systolic_ctrl_matmul (
     // Decoder IF
     input wire                       START_MATMUL_I,
 
-    input wire [`DATA_WIDTH-1:0]     PARAM_S_I,
-    input wire [`DATA_WIDTH*2-1:0]   PARAM_IC_I,
-    input wire [`DATA_WIDTH-1:0]     PARAM_OC_I,
-    input wire [`ADDR_WIDTH-1:0]     PARAM_ISRAM_BASE_ADDR_I,
-    input wire [`ADDR_WIDTH-1:0]     PARAM_WSRAM_BASE_ADDR_I,
+    input wire [`DATA_WIDTH-1:0]     PARAM_M_I,
+    input wire [`DATA_WIDTH*2-1:0]   PARAM_K_I,
+    input wire [`DATA_WIDTH-1:0]     PARAM_N_I,
 
     output                           DONE_MATMUL_O
 
@@ -35,37 +37,48 @@ module systolic_ctrl_matmul (
 
     localparam  NUM_STATE       = 6;
 
-    reg [NUM_STATE-1:0] current_state_r;
-    reg [NUM_STATE-1:0] next_state;
+    reg [NUM_STATE-1:0]         current_state_r;
+    reg [NUM_STATE-1:0]         next_state;
 
-    wire [`PARAM_WIDTH-1:0] m_loop_quo, n_loop_quo, k_loop_quo;
-    wire [`LOG2(`PE_COL)-1:0] m_loop_rem, n_loop_rem, k_loop_rem;
-    wire has_m_loop_rem, has_n_loop_rem, has_k_loop_rem;
+    // reg [`PARAM_WIDTH-1:0]      m_quo_r, n_quo_r, k_quo_r;
+    reg [`LOG2(`PE_COL)-1:0]    m_rem_r, n_rem_r, k_rem_r;
+    wire                        has_m_rem, has_n_rem, has_k_rem;
 
-    reg [`PARAM_WIDTH-1:0] m_loop_quo_r, n_loop_quo_r, k_loop_quo_r;
-    reg [`LOG2(`PE_COL)-1:0] m_loop_rem_r, n_loop_rem_r, k_loop_rem_r;
+    reg [`PARAM_WIDTH-1:0]      m_iter_max_r, n_iter_max_r, k_iter_max_r;
+    reg [`PARAM_WIDTH-1:0]      m_iter_r, n_iter_r, k_iter_r;
+    reg [`PARAM_WIDTH-1:0]      next_m_iter, next_n_iter, next_k_iter;
 
-    wire [`PARAM_WIDTH:0] m_loop_total, n_loop_total, k_loop_total;
-    reg [`PARAM_WIDTH:0] cnt_m_loop_r, cnt_n_loop_r, cnt_k_loop_r;
+    reg [`PARAM_WIDTH-1:0]      isram_addr_r, wsram_addr_r, psram_addr_r;
 
-    assign m_loop_quo = (PARAM_S_I  >> `LOG2(`PE_COL));
-    assign n_loop_quo = (PARAM_OC_I >> `LOG2(`PE_COL));
-    assign k_loop_quo = (PARAM_IC_I >> `LOG2(`PE_ROW));
+    assign has_m_rem = (m_rem_r != 'h0);
+    assign has_n_rem = (n_rem_r != 'h0);
+    assign has_k_rem = (k_rem_r != 'h0);
 
-    assign m_loop_rem = (PARAM_S_I  & ((1 << `LOG2(`PE_COL)) - 1));
-    assign n_loop_rem = (PARAM_OC_I & ((1 << `LOG2(`PE_COL)) - 1));
-    assign k_loop_rem = (PARAM_IC_I & ((1 << `LOG2(`PE_ROW)) - 1));
+    // matrix compute dimension setting
+    always @(posedge CLK, negedge RST_N) begin
+        if (!RST_N) begin
+            m_rem_r <= 'h0; n_rem_r <= 'h0; k_rem_r <= 'h0;
+            m_iter_max_r <='h0; n_iter_max_r <='h0; k_iter_max_r <='h0; 
+        end
+        else begin
+            if (next_state_r == ST_SET_PARAM) begin
+                m_iter_max_r <= (PARAM_M_I + `PE_COL - 1) >> `LOG2(`PE_COL); // ceil operation
+                n_iter_max_r <= (PARAM_N_I + `PE_COL - 1) >> `LOG2(`PE_COL);
+                k_iter_max_r <= (PARAM_K_I + `PE_ROW - 1) >> `LOG2(`PE_ROW);
 
-    assign has_m_loop_rem = (m_loop_rem != 'h0);
-    assign has_n_loop_rem = (n_loop_rem != 'h0);
-    assign has_k_loop_rem = (k_loop_rem != 'h0);
+                m_rem_r <= (PARAM_M_I & ((1 << `LOG2(`PE_COL)) - 1)) // modulo operation
+                n_rem_r <= (PARAM_N_I & ((1 << `LOG2(`PE_COL)) - 1))
+                k_rem_r <= (PARAM_K_I & ((1 << `LOG2(`PE_ROW)) - 1))
+            end
+        end
+    end
 
-    assign m_loop_total = m_loop_quo_r + has_m_loop_rem;
-    assign n_loop_total = n_loop_quo_r + has_n_loop_rem;
-    assign k_loop_total = k_loop_quo_r + has_k_loop_rem;
-
+    // State transition comb logic
     always @* begin
         next_state = current_state_r;
+        next_m_iter = m_iter_r;
+        next_n_iter = n_iter_r;
+        next_k_iter = k_iter_r;
 
         case (1)
             current_state_r[ST_IDLE]: begin
@@ -95,39 +108,5 @@ module systolic_ctrl_matmul (
         else
             current_state_r <= next_state;
     end
-
-    always @(posedge CLK, negedge RST_N) begin
-        if (!RST_N) begin
-            m_loop_quo_r <= 'h0;
-            n_loop_quo_r <= 'h0;
-            k_loop_quo_r <= 'h0;
-
-            m_loop_rem_r <= 'h0;
-            n_loop_rem_r <= 'h0;
-            k_loop_rem_r <= 'h0;
-        end
-        else begin
-            if (current_state_r[ST_IDLE] && START_MATMUL_I) begin
-                m_loop_quo_r <= m_loop_quo;
-                n_loop_quo_r <= n_loop_quo;
-                k_loop_quo_r <= k_loop_quo;
-
-                m_loop_rem_r <= m_loop_rem;
-                n_loop_rem_r <= n_loop_rem;
-                k_loop_rem_r <= k_loop_rem;
-            end
-        end
-    end
-
-    always @(posedge CLK, negedge RST_N) begin
-        if (!RST_N) begin
-            cnt_m_loop_r <= 'h0;
-            cnt_n_loop_r <= 'h0;
-            cnt_k_loop_r <= 'h0;
-        end
-        else begin
-        end
-    end
-
 
 endmodule

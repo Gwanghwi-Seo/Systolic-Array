@@ -58,12 +58,9 @@
 `define BANK_NUM_OFFSET         (`DATA_WIDTH + `ADDR_WIDTH + `PARAM_WIDTH)
 `define SRAM_TRG_OFFSET         (`DATA_WIDTH + `ADDR_WIDTH + `PARAM_WIDTH + `BANK_NUM_WIDTH)
 
-`define PARAM_S                 ('h0)
-`define PARAM_IC                ('h1)
-`define PARAM_OC                ('h2)
-`define PARAM_ISRAM_BASE_ADDR   ('h3)
-`define PARAM_WSRAM_BASE_ADDR   ('h4)
-// `define PARAM_PSRAM_BASE_ADDR   ('h5)
+`define PARAM_M                 ('h0)
+`define PARAM_N                 ('h1)
+`define PARAM_K                 ('h2)
 
 // Target SRAM
 `define TRG_ISRAM               ('h0)
