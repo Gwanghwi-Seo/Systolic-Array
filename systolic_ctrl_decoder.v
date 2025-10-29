@@ -120,7 +120,8 @@ module systolic_ctrl_decoder(
                         next_state_r = (1 << ST_DONE);
                     end
                     `OPC_ST_SRAM: begin // Store to SRAM
-                        next_state_r = (1 << ST_DONE);
+                        // next_state_r = (1 << ST_DONE);
+                        next_state_r = (1 << ST_IDLE);
                     end
                     `OPC_LD_SRAM: begin
                         next_state_r = (1 << ST_SRAM_RD_CPL);
