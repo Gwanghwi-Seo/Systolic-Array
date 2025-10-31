@@ -44,7 +44,7 @@ module systolic_ctrl_matmul (
     reg [NUM_STATE-1:0]         current_state_r;
     reg [NUM_STATE-1:0]         next_state;
 
-    reg [`PARAM_WIDTH-1:0]      m_rem_r, n_rem_r, k_rem_r;
+    reg [`PARAM_WIDTH-1:0]      n_rem_r, k_rem_r;
     reg [`PARAM_WIDTH-1:0]      m_iter_max_r, n_iter_max_r, k_iter_max_r;
     reg [`PARAM_WIDTH-1:0]      m_iter_r, n_iter_r, k_iter_r;
     reg [`PARAM_WIDTH-1:0]      next_m_iter, next_n_iter, next_k_iter;
@@ -55,19 +55,19 @@ module systolic_ctrl_matmul (
     wire                        is_isram_addr_max, is_wsram_addr_max, is_psram_addr_max;
 
     wire                        is_last_m, is_last_n, is_last_k;
-    wire                        has_m_rem, has_n_rem, has_k_rem;
+    wire                        has_n_rem, has_k_rem;
 
-    reg incr_wsram_addr;
+    wire [`PE_ROW-1:0]          isram_load_mask
+    wire [`PE_COL-1:0]          wsram_load_mask, psram_load_mask, psram_init_mask;
 
     // one matmul needs psum loading cycle + `PE_ROW depth
     reg [`LOG2(`PE_ROW):0]      wait_matmul_count_r;
     wire                        is_matmul_done;
 
     assign is_last_m = (m_iter_r == (m_iter_max_r - `PARAM_WIDTH'd1));
-    assign is_last_n = (m_iter_r == (n_iter_max_r - `PARAM_WIDTH'd1));
+    assign is_last_n = (n_iter_r == (n_iter_max_r - `PARAM_WIDTH'd1));
     assign is_last_k = (k_iter_r == (k_iter_max_r - `PARAM_WIDTH'd1));
 
-    assign has_m_rem = (m_rem_r != 'h0);
     assign has_n_rem = (n_rem_r != 'h0);
     assign has_k_rem = (k_rem_r != 'h0);
 
@@ -75,11 +75,16 @@ module systolic_ctrl_matmul (
     assign wsram_addr_max = is_last_k && has_k_rem ? k_rem_r : `PARAM_WIDTH'd`PE_ROW;
     assign psram_addr_max = PARAM_M_I;
 
+    assign isram_load_mask = is_last_k & has_k_rem ? ((1 << k_rem_r)-1) : ((1 << `PE_ROW)-1);
+    assign wsram_load_mask = is_last_n & has_n_rem ? ((1 << n_rem_r)-1) : ((1 << `PE_COL)-1);
+    assign psram_load_mask = is_last_n & has_n_rem ? ((1 << n_rem_r)-1) : ((1 << `PE_COL)-1);
+    assign psram_init_mask = ((1 << `PE_COL)-1);
+
     assign is_isram_addr_max = (isram_addr_r == (isram_addr_max - `PARAM_WIDTH'd1));
     assign is_wsram_addr_max = (wsram_addr_r == (wsram_addr_max - `PARAM_WIDTH'd1));
     assign is_psram_addr_max = (psram_addr_r == (psram_addr_max - `PARAM_WIDTH'd1));
 
-    assign is_matmul_end = (wait_matmul_count_r == ((1 << (`LOG2(PE_ROW)+1)) - 1));
+    assign is_matmul_done = (wait_matmul_count_r == ((1 << (`LOG2(PE_ROW)+1)) - 1)); // wait_matmul_count_r == 2*PE_ROW
 
     // State transition comb logic
     always @* begin
@@ -88,7 +93,6 @@ module systolic_ctrl_matmul (
         next_n_iter = n_iter_r;
         next_k_iter = k_iter_r;
 
-        incr_k_iter = 1'b0;
         case (1)
             current_state_r[ST_IDLE]: begin
                 next_state = START_MATMUL_I ? (1 << ST_SET_PARAM) : (1 << ST_IDLE);
@@ -101,10 +105,9 @@ module systolic_ctrl_matmul (
             end
             current_state_r[ST_LD_MAT_B]: begin
                 next_state = is_wsram_addr_max ? (1 << ST_LD_MAT_A) : (1 << ST_LD_MAT_B);
-                incr_wsram_addr = 1'b1;
             end
             current_state_r[ST_LD_MAT_A]: begin
-                next_state = is_isram_addr_max ? (is_last_m ? (1 << ST_DONE) : (1 << ST_LD_MAT_B)) : (1 << ST_LD_MAT_A);
+                next_state = is_isram_addr_max ? (is_last_n ? (1 << ST_WAIT_MATMUL) : (1 << ST_LD_MAT_B)) : (1 << ST_LD_MAT_A);
             end
             current_state_r[ST_WAIT_MATMUL]: begin
                 next_state = is_matmul_done ? (1 << ST_DONE) : (1 << ST_WAIT_MATMUL);
@@ -133,26 +136,32 @@ module systolic_ctrl_matmul (
             n_iter_max_r <='h0;
             k_iter_max_r <='h0;
 
-            m_rem_r <= 'h0;
             n_rem_r <= 'h0;
             k_rem_r <= 'h0;
         end
         else begin
             if (next_state_r[ST_SET_PARAM]) begin
+                m_iter_r <= 'h0;
+                n_iter_r <= 'h0;
+                k_iter_r <= 'h0;
+
                 m_iter_max_r <= (PARAM_M_I + `PE_COL - 1) >> `LOG2(`PE_COL); // ceil operation
                 n_iter_max_r <= (PARAM_N_I + `PE_COL - 1) >> `LOG2(`PE_COL);
                 k_iter_max_r <= (PARAM_K_I + `PE_ROW - 1) >> `LOG2(`PE_ROW);
 
-                m_rem_r <= (PARAM_M_I & ((1 << `LOG2(`PE_COL)) - 1)) // modulo operation
-                n_rem_r <= (PARAM_N_I & ((1 << `LOG2(`PE_COL)) - 1))
-                k_rem_r <= (PARAM_K_I & ((1 << `LOG2(`PE_ROW)) - 2))
+                n_rem_r <= (PARAM_N_I & ((1 << `LOG2(`PE_COL)) - 1)) // Modulo
+                k_rem_r <= (PARAM_K_I & ((1 << `LOG2(`PE_ROW)) - 1))
             end
+
+            if (is_psram_addr_max)
+                m_iter_r <= m_iter_r + `PARAM_WIDTH'd1;
 
             if (is_last_k && is_isram_addr_max)
                 k_iter_r <= 'h0;
                 n_iter_r <= n_iter_r + `PARAM_WIDTH'd1;
             else
                 k_iter_r <= k_iter_r + `PARAM_WIDTH'd1;
+
         end
     end
 
@@ -166,31 +175,69 @@ module systolic_ctrl_matmul (
             isram_addr_r <= 'h0;
             wsram_addr_r <= 'h0;
             psram_addr_r <= 'h0;
+
+            wait_matmul_count_r <= 'h0;
         end
         else begin
-            if (is_wsram_addr_max) begin
-                base_wsram_addr_r <= base_wsram_addr_r + wsram_addr_r;
-                wsram_addr_r <= 'h0;
-            end
-            else begin
-                wsram_addr_r <= wsram_addr_r + `PARAM_WIDTH'd1;
+            // wsram addr
+            if (current_state_r[ST_LD_MAT_B]) begin
+                if (is_wsram_addr_max) begin
+                    wsram_addr_r <= 'h0;
+
+                    if (is_last_k)
+                        base_wsram_addr_r <= base_wsram_addr_r + wsram_addr_r;
+                end
+                else begin
+                    wsram_addr_r <= wsram_addr_r + `PARAM_WIDTH'd1;
+                end
             end
 
-            if (current_state_r[ST_LD_MAT_A]) begin
-                if (is_)
-                isram_addr_r <= isram_addr_r + `PARAM_WIDTH'd1;
+            // psram addr
+            if (current_state_r[ST_INIT_PSUM]) begin
+                if (is_last_m && is_psram_addr_max)
+                    psram_addr_r <= 'h0;
+                else
+                    psram_addr_r <= psram_addr_r + `PARAM_WIDTH'd1;
             end
+            else if (current_state_r[ST_LD_MAT_A]) begin
+                if (is_last_k && is_psram_addr_max)
+                    if (is_last_n)
+                        base_psram_addr_r <= 'h0;
+                    else
+                        base_psram_addr_r <= base_psram_addr + psram_addr_r;
+                else
+                    psram_addr_r <= psram_addr_r + `PARAM_WIDTH'd1;
+            end
+           
+            // isram addr
+            if (current_state_r[ST_LD_MAT_A]) begin
+                if (is_last_k && is_isram_addr_max) begin
+                    isram_addr_r <= 'h0;
+                end
+                else begin
+                    isram_addr_r <= isram_addr_r + `PARAM_WIDTH'd1;
+                end
+            end
+
+            // wait matmul count
+            if (current_state_r[ST_WAIT_MATMUL])
+                wait_matmul_count_r <= wait_matmul_count_r + `LOG2(`PE_ROW)'d1;
+            else
+                wait_matmul_count_r <= 'h0;
         end
     end
 
-    // // Count register update
-    // always @(posedge CLK, negedge RST_N) begin
-    //     if (!RST_N) begin
-    //        
-    //     end
-    //     else begin
-    //        
-    //     end
-    // end
+    // output assignment
+    assign DONE_MATMUL_O = current_state_r[ST_DONE];
+
+    assign REQ_MAT_ISRAM_EN_O   = current_state_r[ST_LD_MAT_A] ? isram_load_mask : 'h0;
+    assign REQ_MAT_ISRAM_ADDR_O = base_isram_addr_r + isram_addr_r;
+
+    assign REQ_MAT_WSRAM_EN_O   = current_state_r[ST_LD_MAT_B] ? wsram_load_mask : 'h0;
+    assign REQ_MAT_WSRAM_ADDR_O = base_wsram_addr_r + wsram_addr_r;
+
+    assign REQ_MAT_PSRAM_EN_O   = current_state_r[ST_INIT_PSUM] ? psram_init_mask :
+                                  current_state_r[ST_LD_MAT_B] ? psram_load_mask : 'h0;
+    assign REQ_MAT_PSRAM_ADDR_O = base_psram_addr_r + psram_addr_r;
 
 endmodule
