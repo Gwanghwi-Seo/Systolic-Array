@@ -13,14 +13,13 @@ module systolic_ctrl_matmul (
 
     // Decoder IF
     input wire                       START_MATMUL_I,
+    output                           DONE_MATMUL_O,
 
     input wire [`DATA_WIDTH-1:0]     PARAM_M_I,
-    input wire [`DATA_WIDTH*2-1:0]   PARAM_K_I,
     input wire [`DATA_WIDTH-1:0]     PARAM_N_I,
+    input wire [`DATA_WIDTH*2-1:0]   PARAM_K_I,
 
-    output                           DONE_MATMUL_O
-
-    // SRAMC IF
+ .   // SRAMC IF
     output [`PE_ROW-1:0]             REQ_MAT_ISRAM_EN_O,
     output [`ADDR_WIDTH-1:0]         REQ_MAT_ISRAM_ADDR_O,
 
@@ -47,7 +46,6 @@ module systolic_ctrl_matmul (
     reg [`PARAM_WIDTH-1:0]      n_rem_r, k_rem_r;
     reg [`PARAM_WIDTH-1:0]      m_iter_max_r, n_iter_max_r, k_iter_max_r;
     reg [`PARAM_WIDTH-1:0]      m_iter_r, n_iter_r, k_iter_r;
-    reg [`PARAM_WIDTH-1:0]      next_m_iter, next_n_iter, next_k_iter;
 
     reg [`PARAM_WIDTH-1:0]      base_isram_addr_r, base_wsram_addr_r, base_psram_addr_r;
     reg [`PARAM_WIDTH-1:0]      isram_addr_r, wsram_addr_r, psram_addr_r;
@@ -89,9 +87,6 @@ module systolic_ctrl_matmul (
     // State transition comb logic
     always @* begin
         next_state = current_state_r;
-        next_m_iter = m_iter_r;
-        next_n_iter = n_iter_r;
-        next_k_iter = k_iter_r;
 
         case (1)
             current_state_r[ST_IDLE]: begin

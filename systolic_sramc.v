@@ -8,7 +8,7 @@ module systolic_sramc (
     input                           REQ_DEC_ISRAM_EN_I,
     input                           REQ_DEC_ISRAM_WE_I,
     input [`ADDR_WIDTH-1:0]         REQ_DEC_ISRAM_ADDR_I,
-    input [`DATA_WIDTH-1:0]         REQ_DEC_ISRAM_WDATA_I
+    input [`DATA_WIDTH-1:0]         REQ_DEC_ISRAM_WDATA_I,
     input [`BANK_NUM_WIDTH-1:0]     REQ_DEC_ISRAM_BANK_NUM_I,
 
     output                          CPL_DEC_ISRAM_VALID_O,
@@ -17,7 +17,7 @@ module systolic_sramc (
     input                           REQ_DEC_WSRAM_EN_I,
     input                           REQ_DEC_WSRAM_WE_I,
     input [`ADDR_WIDTH-1:0]         REQ_DEC_WSRAM_ADDR_I,
-    input [`DATA_WIDTH-1:0]         REQ_DEC_WSRAM_WDATA_I
+    input [`DATA_WIDTH-1:0]         REQ_DEC_WSRAM_WDATA_I,
     input [`BANK_NUM_WIDTH-1:0]     REQ_DEC_WSRAM_BANK_NUM_I,
 
     output                          CPL_DEC_WSRAM_VALID_O,
@@ -26,7 +26,7 @@ module systolic_sramc (
     input                           REQ_DEC_PSRAM_EN_I,
     input                           REQ_DEC_PSRAM_WE_I,
     input [`ADDR_WIDTH-1:0]         REQ_DEC_PSRAM_ADDR_I,
-    input [`PSUM_WIDTH-1:0]         REQ_DEC_PSRAM_WDATA_I
+    input [`PSUM_WIDTH-1:0]         REQ_DEC_PSRAM_WDATA_I,
     input [`BANK_NUM_WIDTH-1:0]     REQ_DEC_PSRAM_BANK_NUM_I,
 
     output                          CPL_DEC_PSRAM_VALID_O,
@@ -45,7 +45,7 @@ module systolic_sramc (
     // pe_array IF, write only
     input [`PE_COL-1:0]             REQ_PEARR_PSRAM_EN_I,
     input [`ADDR_WIDTH-1:0]         REQ_PEARR_PSRAM_ADDR_I,
-    input [`PSUM_WIDTH*`PE_COL-1:0] REQ_PEARR_PSRAM_WDATA_I
+    input [`PSUM_WIDTH*`PE_COL-1:0] REQ_PEARR_PSRAM_WDATA_I,
 
     // Input, Weight, PSUM Loader If
     output [`PE_ROW-1:0]            CPL_LOADER_ISRAM_VALID_O,
@@ -55,7 +55,7 @@ module systolic_sramc (
     output [`DATA_WIDTH*`PE_COL-1:0]CPL_LOADER_WSRAM_RDATA_O,
 
     output [`PE_COL-1:0]            CPL_LOADER_PSRAM_VALID_O,
-    output [`PSUM_WIDTH*`PE_COL-1:0]CPL_LOADER_PSRAM_RDATA_O,
+    output [`PSUM_WIDTH*`PE_COL-1:0]CPL_LOADER_PSRAM_RDATA_O
 );
 
     // Input SRAM (ISRAM)

@@ -15,39 +15,39 @@ module systolic_ctrl_decoder(
     output [`REQ_WIDTH-1:0]         CPL_CPU_DATA_O,
 
     // SRAMC IF
-    output                          REQ_ISRAM_EN_O, // Active low
-    output                          REQ_ISRAM_WE_O,
-    output [`ADDR_WIDTH-1:0]        REQ_ISRAM_ADDR_O,
-    output [`DATA_WIDTH-1:0]        REQ_ISRAM_WDATA_O,
-    output [`BANK_NUM_WIDTH-1:0]    REQ_ISRAM_BANK_NUM_O,
+    output                          REQ_DEC_ISRAM_EN_O, // Active low
+    output                          REQ_DEC_ISRAM_WE_O,
+    output [`ADDR_WIDTH-1:0]        REQ_DEC_ISRAM_ADDR_O,
+    output [`DATA_WIDTH-1:0]        REQ_DEC_ISRAM_WDATA_O,
+    output [`BANK_NUM_WIDTH-1:0]    REQ_DEC_ISRAM_BANK_NUM_O,
 
-    input                           CPL_ISRAM_VALID_I,
-    input  [`DATA_WIDTH-1:0]        CPL_ISRAM_RDATA_I,
+    input                           CPL_DEC_ISRAM_VALID_I,
+    input  [`DATA_WIDTH-1:0]        CPL_DEC_ISRAM_RDATA_I,
 
-    output                          REQ_WSRAM_EN_O, // Active low
-    output                          REQ_WSRAM_WE_O,
-    output [`ADDR_WIDTH-1:0]        REQ_WSRAM_ADDR_O,
-    output [`DATA_WIDTH-1:0]        REQ_WSRAM_WDATA_O,
-    output [`BANK_NUM_WIDTH-1:0]    REQ_WSRAM_BANK_NUM_O,
+    output                          REQ_DEC_WSRAM_EN_O, // Active low
+    output                          REQ_DEC_WSRAM_WE_O,
+    output [`ADDR_WIDTH-1:0]        REQ_DEC_WSRAM_ADDR_O,
+    output [`DATA_WIDTH-1:0]        REQ_DEC_WSRAM_WDATA_O,
+    output [`BANK_NUM_WIDTH-1:0]    REQ_DEC_WSRAM_BANK_NUM_O,
 
-    input                           CPL_WSRAM_VALID_I,
-    input  [`DATA_WIDTH-1:0]        CPL_WSRAM_RDATA_I,
+    input                           CPL_DEC_WSRAM_VALID_I,
+    input  [`DATA_WIDTH-1:0]        CPL_DEC_WSRAM_RDATA_I,
 
-    output                          REQ_PSRAM_EN_O, // Active low
-    output                          REQ_PSRAM_WE_O,
-    output [`ADDR_WIDTH-1:0]        REQ_PSRAM_ADDR_O,
-    output [`PSUM_WIDTH-1:0]        REQ_PSRAM_WDATA_O,
-    output [`BANK_NUM_WIDTH-1:0]    REQ_PSRAM_BANK_NUM_O,
+    output                          REQ_DEC_PSRAM_EN_O, // Active low
+    output                          REQ_DEC_PSRAM_WE_O,
+    output [`ADDR_WIDTH-1:0]        REQ_DEC_PSRAM_ADDR_O,
+    output [`PSUM_WIDTH-1:0]        REQ_DEC_PSRAM_WDATA_O,
+    output [`BANK_NUM_WIDTH-1:0]    REQ_DEC_PSRAM_BANK_NUM_O,
 
-    input                           CPL_PSRAM_VALID_I,
-    input  [`PSUM_WIDTH-1:0]        CPL_PSRAM_RDATA_I,
+    input                           CPL_DEC_PSRAM_VALID_I,
+    input  [`PSUM_WIDTH-1:0]        CPL_DEC_PSRAM_RDATA_I,
 
     // MATMUL IF
-    output                          MATMUL_START_O,
-    input                           MATMUL_DONE_I,
+    output                          START_MATMUL_O,
+    input                           DONE_MATMUL_I,
     output [`PARAM_WIDTH-1:0]       PARAM_M_O,
-    output [`PARAM_WIDTH-1:0]       PARAM_K_O,
     output [`PARAM_WIDTH-1:0]       PARAM_N_O,
+    output [`PARAM_WIDTH-1:0]       PARAM_K_O,
 );
 
     // State definition
@@ -79,8 +79,6 @@ module systolic_ctrl_decoder(
     reg [`PARAM_WIDTH-1:0]      param_m_r;
     reg [`PARAM_WIDTH-1:0]      param_n_r;
     reg [`PARAM_WIDTH-1:0]      param_k_r;
-    reg [`PARAM_WIDTH-1:0]      param_isram_base_addr_r;
-    reg [`PARAM_WIDTH-1:0]      param_wsram_base_addr_r;
 
     reg [`DATA_WIDTH-1:0]       ld_isram_rdata_r;
     reg [`DATA_WIDTH-1:0]       ld_wsram_rdata_r;
@@ -138,7 +136,7 @@ module systolic_ctrl_decoder(
                 next_state_r = (1 << ST_MATMUL_CPL);
             end
             current_state_r[ST_MATMUL_CPL]: begin
-                if (MATMUL_DONE_I) begin
+                if (DONE_MATMUL_I) begin
                     next_state_r = (1 << ST_DONE);
                 end
             end
@@ -179,8 +177,6 @@ module systolic_ctrl_decoder(
             param_m_r               <= 'h0;
             param_n_r               <= 'h0;
             param_k_r               <= 'h0;
-            param_isram_base_addr_r <= 'h0;
-            param_wsram_base_addr_r <= 'h0;
         end
         else begin
             if ((current_state_r[ST_DECODE]) && (req_opc_r == `OPC_SET_PARAM)) begin
@@ -202,14 +198,14 @@ module systolic_ctrl_decoder(
             ld_psram_rdata_r <= 'h0;
         end
         else begin
-            if (current_state_r[ST_SRAM_RD_CPL] && CPL_ISRAM_VALID_I) begin
-                ld_isram_rdata_r <= CPL_ISRAM_RDATA_I;
+            if (current_state_r[ST_SRAM_RD_CPL] && CPL_DEC_ISRAM_VALID_I) begin
+                ld_isram_rdata_r <= CPL_DEC_ISRAM_RDATA_I;
             end
-            if (current_state_r[ST_SRAM_RD_CPL] && CPL_WSRAM_VALID_I) begin
-                ld_wsram_rdata_r <= CPL_WSRAM_RDATA_I;
+            if (current_state_r[ST_SRAM_RD_CPL] && CPL_DEC_WSRAM_VALID_I) begin
+                ld_wsram_rdata_r <= CPL_DEC_WSRAM_RDATA_I;
             end
-            if (current_state_r[ST_SRAM_RD_CPL] && CPL_PSRAM_VALID_I) begin
-                ld_psram_rdata_r <= CPL_PSRAM_RDATA_I;
+            if (current_state_r[ST_SRAM_RD_CPL] && CPL_DEC_PSRAM_VALID_I) begin
+                ld_psram_rdata_r <= CPL_DEC_PSRAM_RDATA_I;
             end
         end
     end
@@ -238,26 +234,26 @@ module systolic_ctrl_decoder(
                                                   req_opc_r == `OPC_MATMUL    ? {31'h0, cpl_matmul_done} : 'h0)
                                               : 'h0;
 
-    assign REQ_ISRAM_EN_O      = is_isram_access ? 1'b0 : 1'b1;
-    assign REQ_ISRAM_WE_O      = is_isram_access && (req_opc_r == `ST_SRAM) ? 1'b0 : 1'b1;
-    assign REQ_ISRAM_WDATA_O   = is_isram_access && (req_opc_r == `ST_SRAM) ? req_sram_wdata : 'h0;
-    assign REQ_ISRAM_ADDR_O    = is_isram_access ? req_sram_addr : 'h0;
+    assign REQ_DEC_ISRAM_EN_O      = is_isram_access ? 1'b0 : 1'b1;
+    assign REQ_DEC_ISRAM_WE_O      = is_isram_access && (req_opc_r == `ST_SRAM) ? 1'b0 : 1'b1;
+    assign REQ_DEC_ISRAM_ADDR_O    = is_isram_access ? req_sram_addr : 'h0;
+    assign REQ_DEC_ISRAM_WDATA_O   = is_isram_access && (req_opc_r == `ST_SRAM) ? req_sram_wdata : 'h0;
+    assign REQ_DEC_ISRAM_BANK_NUM_O = is_isram_access ? req_sram_bank_num : 'h0;
 
-    assign REQ_WSRAM_EN_O      = is_wsram_access ? 1'b0 : 1'b1;
-    assign REQ_WSRAM_WE_O      = is_wsram_access && (req_opc_r == `ST_SRAM)? 1'b0 : 1'b1;
-    assign REQ_WSRAM_WDATA_O   = is_wsram_access && (req_opc_r == `ST_SRAM)? req_sram_wdata : 'h0;
-    assign REQ_WSRAM_ADDR_O    = is_wsram_access ? req_sram_addr : 'h0;
+    assign REQ_DEC_WSRAM_EN_O      = is_wsram_access ? 1'b0 : 1'b1;
+    assign REQ_DEC_WSRAM_WE_O      = is_wsram_access && (req_opc_r == `ST_SRAM)? 1'b0 : 1'b1;
+    assign REQ_DEC_WSRAM_ADDR_O    = is_wsram_access ? req_sram_addr : 'h0;
+    assign REQ_DEC_WSRAM_WDATA_O   = is_wsram_access && (req_opc_r == `ST_SRAM)? req_sram_wdata : 'h0;
+    assign REQ_DEC_WSRAM_BANK_NUM_O = is_wsram_access ? req_sram_bank_num : 'h0;
 
-    assign REQ_PSRAM_EN_O      = is_psram_access ? 1'b0 : 1'b1;
-    assign REQ_PSRAM_WE_O      = is_psram_access && (req_opc_r == `ST_SRAM)? 1'b0 : 1'b1;
-    assign REQ_PSRAM_WDATA_O   = is_psram_access && (req_opc_r == `ST_SRAM)? req_sram_wdata : 'h0;
-    assign REQ_PSRAM_ADDR_O    = is_psram_access ? req_sram_addr : 'h0;
+    assign REQ_DEC_PSRAM_EN_O      = is_psram_access ? 1'b0 : 1'b1;
+    assign REQ_DEC_PSRAM_WE_O      = is_psram_access && (req_opc_r == `ST_SRAM)? 1'b0 : 1'b1;
+    assign REQ_DEC_PSRAM_ADDR_O    = is_psram_access ? req_sram_addr : 'h0;
+    assign REQ_DEC_PSRAM_WDATA_O   = is_psram_access && (req_opc_r == `ST_SRAM)? req_sram_wdata : 'h0;
+    assign REQ_DEC_PSRAM_BANK_NUM_O = is_psram_access ? req_sram_addr : 'h0;
 
-    assign MATMUL_START_O      = (current_state_r[ST_MATMUL_REQ]) ? 1'b1 : 1'b0;
+    assign START_MATMUL_O      = (current_state_r[ST_MATMUL_REQ]) ? 1'b1 : 1'b0;
     assign PARAM_M_O           = param_m_r;
     assign PARAM_N_O           = param_n_r;
     assign PARAM_K_O           = param_k_r;
-
-    assign PARAM_ISRAM_BASE_ADDR_O = param_isram_base_addr_r;
-    assign PARAM_WSRAM_BASE_ADDR_O = param_wsram_base_addr_r;
 endmodule
