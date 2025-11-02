@@ -12,15 +12,15 @@ module systolic_mat_a_delay_line #(
     output [`DATA_WIDTH-1:0] DATA_O
 );
 
-    reg [`DATA_WIDTH-1:0] data_pipe_r  [0: DEPTH-1];
     reg                   valid_pipe_r [0: DEPTH-1];
+    reg [`DATA_WIDTH-1:0] data_pipe_r  [0: DEPTH-1];
 
     integer i;
     always @(posedge CLK, negedge RST_N) begin
         if (!RST_N) begin
             for (i = 0; i < DEPTH; i = i + 1) begin
-                data_pipe_r[i] <= 'h0;
                 valid_pipe_r[i] <= 1'b0;
+                data_pipe_r[i] <= 'h0;
             end
         end
         else begin

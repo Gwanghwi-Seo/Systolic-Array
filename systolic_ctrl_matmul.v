@@ -59,7 +59,7 @@ module systolic_ctrl_matmul (
     wire [`PE_COL-1:0]          wsram_load_mask, psram_load_mask, psram_init_mask;
 
     // one matmul needs psum loading cycle + `PE_ROW depth
-    reg [`LOG2(`PE_ROW):0]      wait_matmul_count_r;
+    reg [$clog2(`PE_ROW):0]     wait_matmul_count_r;
     wire                        is_matmul_done;
 
     assign is_last_m = (m_iter_r == (m_iter_max_r - `PARAM_WIDTH'd1));
@@ -82,7 +82,7 @@ module systolic_ctrl_matmul (
     assign is_wsram_addr_max = (wsram_addr_r == (wsram_addr_max - `PARAM_WIDTH'd1));
     assign is_psram_addr_max = (psram_addr_r == (psram_addr_max - `PARAM_WIDTH'd1));
 
-    assign is_matmul_done = (wait_matmul_count_r == ((1 << (`LOG2(PE_ROW)+1)) - 1)); // wait_matmul_count_r == 2*PE_ROW
+    assign is_matmul_done = (wait_matmul_count_r == ((1 << ($clog2(PE_ROW)+1)) - 1)); // wait_matmul_count_r == 2*PE_ROW
 
     // State transition comb logic
     always @* begin
@@ -140,12 +140,12 @@ module systolic_ctrl_matmul (
                 n_iter_r <= 'h0;
                 k_iter_r <= 'h0;
 
-                m_iter_max_r <= (PARAM_M_I + `PE_COL - 1) >> `LOG2(`PE_COL); // ceil operation
-                n_iter_max_r <= (PARAM_N_I + `PE_COL - 1) >> `LOG2(`PE_COL);
-                k_iter_max_r <= (PARAM_K_I + `PE_ROW - 1) >> `LOG2(`PE_ROW);
+                m_iter_max_r <= (PARAM_M_I + `PE_COL - 1) >> $clog2(`PE_COL); // ceil operation
+                n_iter_max_r <= (PARAM_N_I + `PE_COL - 1) >> $clog2(`PE_COL);
+                k_iter_max_r <= (PARAM_K_I + `PE_ROW - 1) >> $clog2(`PE_ROW);
 
-                n_rem_r <= (PARAM_N_I & ((1 << `LOG2(`PE_COL)) - 1)) // Modulo
-                k_rem_r <= (PARAM_K_I & ((1 << `LOG2(`PE_ROW)) - 1))
+                n_rem_r <= (PARAM_N_I & ((1 << $clog2(`PE_COL)) - 1)) // Modulo
+                k_rem_r <= (PARAM_K_I & ((1 << $clog2(`PE_ROW)) - 1))
             end
 
             if (is_psram_addr_max)
@@ -216,7 +216,7 @@ module systolic_ctrl_matmul (
 
             // wait matmul count
             if (current_state_r[ST_WAIT_MATMUL])
-                wait_matmul_count_r <= wait_matmul_count_r + `LOG2(`PE_ROW)'d1;
+                wait_matmul_count_r <= wait_matmul_count_r + $clog2(`PE_ROW)'d1;
             else
                 wait_matmul_count_r <= 'h0;
         end

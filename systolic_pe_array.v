@@ -10,7 +10,7 @@ module systolic_pe_array (
     input [`DATA_WIDTH*`PE_ROW-1:0]             MAT_A_I,
     
     // matrix B (Inputs for the first row)
-    input [`ROW_ID_WIDTH*`PE_COL-1:0]           EN_PE_ROW_ID_I,
+    input [`PE_ROW_ID_WIDTH*`PE_COL-1:0]        EN_PE_ROW_ID_I,
     input [`PE_COL-1:0]                         MAT_B_VALID_I,
     input [`DATA_WIDTH*`PE_COL-1:0]             MAT_B_I,
 
@@ -32,7 +32,7 @@ module systolic_pe_array (
     // Wires for Matrix B dataflow (downward)
     wire [`DATA_WIDTH-1:0]      mat_b_data    [0:`PE_ROW][0:`PE_COL-1]; // Note: PE_ROW for output
     wire                        mat_b_valid   [0:`PE_ROW][0:`PE_COL-1];
-    wire [`ROW_ID_WIDTH-1:0]    en_pe_row_id  [0:`PE_ROW][0:`PE_COL-1];
+    wire [`PE_ROW_ID_WIDTH-1:0]    en_pe_row_id  [0:`PE_ROW][0:`PE_COL-1];
 
     // Wires for PSUM dataflow (downward)
     wire [`PSUM_WIDTH-1:0]      mat_psum_data [0:`PE_ROW][0:`PE_COL-1];
@@ -50,7 +50,7 @@ module systolic_pe_array (
         for (n = 0; n < `PE_COL; n = n + 1) begin
             assign mat_b_data[0][n]   = MAT_B_I[`DATA_WIDTH*n +: `DATA_WIDTH];
             assign mat_b_valid[0][n]  = MAT_B_VALID_I[n];
-            assign en_pe_row_id[0][n] = EN_PE_ROW_ID_I[`ROW_ID_WIDTH*n +: `ROW_ID_WIDTH];
+            assign en_pe_row_id[0][n] = EN_PE_ROW_ID_I[`PE_ROW_ID_WIDTH*n +: `PE_ROW_ID_WIDTH];
             
             assign mat_psum_data[0][n]  = MAT_PSUM_I[`PSUM_WIDTH*n +: `PSUM_WIDTH];
             assign mat_psum_valid[0][n] = MAT_PSUM_VALID_I[n];
@@ -60,7 +60,7 @@ module systolic_pe_array (
         // Generate PE instances and wire them up
         for (m = 0; m < `PE_ROW; m = m + 1) begin: G_PE_ROW
             for (n = 0; n < `PE_COL; n = n + 1) begin: G_PE_COL
-                pe pe_inst (
+                systolic_pe U_PE(
                     .CLK(CLK),
                     .RST_N(RST_N),
                     
