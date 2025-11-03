@@ -1,14 +1,14 @@
 module spsram #(
-    parameter DEPTH=8,
-    parameter DATA_WIDTH=32,
-    parameter DEPTH_WIDTH=$clog2(DEPTH);
+    parameter DEPTH=1024,
+    parameter ADDR_WIDTH=14,
+    parameter DATA_WIDTH=8
 )(
-    input clka,
+    input                           clka,
     input                           ena,
     input                           wea,
-    input       [DEPTH_WIDTH-1:0]   addra,
+    input       [ADDR_WIDTH-1:0]    addra,
     input       [DATA_WIDTH-1:0]    dina,
-    output reg  [DATA_WIDTH-1:0]    douta,
+    output reg  [DATA_WIDTH-1:0]    douta
 );
 
     reg [DATA_WIDTH-1:0] mem_r [0:DEPTH-1];

@@ -1,19 +1,19 @@
 module dpsram #(
-    parameter DEPTH=8,
-    parameter DATA_WIDTH=32,
-    parameter DEPTH_WIDTH=$clog2(DEPTH);
+    parameter DEPTH=256,
+    parameter ADDR_WIDTH=14,
+    parameter DATA_WIDTH=24
 )(
     input                           clka,
     input                           ena,
     input                           wea,
-    input       [DEPTH_WIDTH-1:0]   addra,
+    input       [ADDR_WIDTH-1:0]    addra,
     input       [DATA_WIDTH-1:0]    dina,
     output reg  [DATA_WIDTH-1:0]    douta,
 
     input                           clkb,
     input                           enb,
     input                           web,
-    input       [DEPTH_WIDTH-1:0]   addrb,
+    input       [ADDR_WIDTH-1:0]    addrb,
     input       [DATA_WIDTH-1:0]    dinb,
     output reg  [DATA_WIDTH-1:0]    doutb
 );

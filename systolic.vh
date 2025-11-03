@@ -1,32 +1,14 @@
+
 `ifndef __SYSTOLIC_VH__
 `define __SYSTOLIC_VH__
 
 `define SIM // for simulation, comment out for synthesis (FPGA)
-
-// `define LOG2(x) (\
-//         (x <= 1)      ? 0 : \
-//         (x <= 2)      ? 1 : \
-//         (x <= 4)      ? 2 : \
-//         (x <= 8)      ? 3 : \
-//         (x <= 16)     ? 4 : \
-//         (x <= 32)     ? 5 : \
-//         (x <= 64)     ? 6 : \
-//         (x <= 128)    ? 7 : \
-//         (x <= 256)    ? 8 : \
-//         (x <= 512)    ? 9 : \
-//         (x <= 1024)   ? 10 : \
-//         (x <= 2048)   ? 11 : \
-//         (x <= 4096)   ? 12 : \
-//         (x <= 8192)   ? 13 : \
-//         (x <= 16384)  ? 14 : \
-//         (x <= 32768)  ? 15 : \
-//         (x <= 65536)  ? 16 : 0);
+// `define VCS // fsdbDumpvars
 
 // PE_ROW, PE_COL are must be the power of 2 for effecient logic synthesis.
 `define PE_ROW                  8 // if set to 1, it causes a violation(`LOG2(`PE_ROW))
 `define PE_COL                  8
 
-// `define PE_ROW_ID_WIDTH         `LOG2(`PE_ROW)
 `define PE_ROW_ID_WIDTH         $clog2(`PE_ROW)
 
 `define OPC_NOP                 ('h0)
@@ -40,7 +22,7 @@
 `define REQ_WIDTH               32
 
 `define PARAM_WIDTH             16
-`define PARAM_TRG_WIDTH         3
+`define PARAM_TRG_WIDTH         2
 `define RSVD_SET_PARAM_WIDTH    (32 - `PARAM_WIDTH - `PARAM_TRG_WIDTH) // reserved for future use
 
 `define DATA_WIDTH              8
@@ -56,8 +38,8 @@
 `define PARAM_OFFSET            (0)
 `define DATA_OFFSET             (0)
 `define ADDR_OFFSET             (`DATA_WIDTH)
-`define BANK_NUM_OFFSET         (`DATA_WIDTH + `ADDR_WIDTH + `PARAM_WIDTH)
-`define SRAM_TRG_OFFSET         (`DATA_WIDTH + `ADDR_WIDTH + `PARAM_WIDTH + `BANK_NUM_WIDTH)
+`define BANK_NUM_OFFSET         (`DATA_WIDTH + `ADDR_WIDTH)
+`define SRAM_TRG_OFFSET         (`DATA_WIDTH + `ADDR_WIDTH + `BANK_NUM_WIDTH)
 
 `define PARAM_M                 ('h0)
 `define PARAM_N                 ('h1)

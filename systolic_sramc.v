@@ -80,12 +80,12 @@ module systolic_sramc (
     wire [`PE_COL-1:0]              cen_psram_p0_bank;
     wire [`PE_COL-1:0]              wen_psram_p0_bank;
     wire [`ADDR_WIDTH-1:0]          a_psram_p0;
-    wire [`PSUM_WIDTH*`PE_COL-1:0]  d_psram_p0_bank;
+    wire [`PSUM_WIDTH-1:0]          d_psram_p0;
     wire [`PSUM_WIDTH*`PE_COL-1:0]  q_psram_p0_bank;
 
     wire [`PE_COL-1:0]              cen_psram_p1_bank;
     wire [`PE_COL-1:0]              wen_psram_p1_bank;
-    wire [`ADDR_WIDTH-1:0]          a_psram_p1;
+    wire [`ADDR_WIDTH*`PE_COL-1:0]  a_psram_p1_bank;
     wire [`PSUM_WIDTH*`PE_COL-1:0]  d_psram_p1_bank;
     wire [`PSUM_WIDTH*`PE_COL-1:0]  q_psram_p1_bank;
 
@@ -151,9 +151,10 @@ module systolic_sramc (
                 // For simulation, use a simpler SRAM model if available
                 spsram #(
                     .DEPTH(1024),
+                    .ADDR_WIDTH(`ADDR_WIDTH),
                     .DATA_WIDTH(`DATA_WIDTH)
                 ) U_ISRAM (
-                    .clk        (CLK),
+                    .clka       (CLK),
                     .ena        (cen_isram_bank[row]), // Active low
                     .wea        (wen_isram_bank[row]), // WR: 0, RD: 1
                     .addra      (a_isram),
@@ -180,9 +181,10 @@ module systolic_sramc (
                 // For simulation, use a simpler SRAM model if available
                 spsram #(
                     .DEPTH(1024),
+                    .ADDR_WIDTH(`ADDR_WIDTH),
                     .DATA_WIDTH(`DATA_WIDTH)
                 ) U_WSRAM (
-                    .clk        (CLK),
+                    .clka       (CLK),
                     .ena        (cen_wsram_bank[col]), // Active low
                     .wea        (wen_wsram_bank[col]), // WR: 0, RD: 1
                     .addra      (a_wsram),
@@ -209,6 +211,7 @@ module systolic_sramc (
             `ifdef SIM
                 dpsram #(
                     .DEPTH(256),
+                    .ADDR_WIDTH(`ADDR_WIDTH),
                     .DATA_WIDTH(`PSUM_WIDTH)
                 ) U_PSRAM (
                     .clka       (CLK),
@@ -216,13 +219,13 @@ module systolic_sramc (
                     .wea        (wen_psram_p0_bank[col]), // WR: 0, RD: 1
                     .addra      (a_psram_p0),
                     .dina       (d_psram_p0),
-                    .douta      (q_psram_p0_bank[`PSUM_WIDTH*col +: `PSUM_WIDTH])
+                    .douta      (q_psram_p0_bank[`PSUM_WIDTH*col +: `PSUM_WIDTH]),
 
                     .clkb       (CLK),
-                    .enb        (cen_wsram_p1_bank[col]), // Active low
-                    .web        (wen_wsram_p1_bank[col]), // WR: 0, RD: 1
-                    .addrb      (a_psram_p1),
-                    .dinb       (d_psram_p1),
+                    .enb        (cen_psram_p1_bank[col]), // Active low
+                    .web        (wen_psram_p1_bank[col]), // WR: 0, RD: 1
+                    .addrb      (a_psram_p1_bank[`ADDR_WIDTH*col +: `ADDR_WIDTH]),
+                    .dinb       (d_psram_p1_bank[`PSUM_WIDTH*col +: `PSUM_WIDTH]),
                     .doutb      (q_psram_p1_bank[`PSUM_WIDTH*col +: `PSUM_WIDTH])
                 );
             `else
@@ -280,7 +283,7 @@ module systolic_sramc (
     assign CPL_DEC_WSRAM_RDATA_O = dec_wsram_valid_r ? q_wsram_bank[`DATA_WIDTH*dec_wsram_bank_num_r +: `DATA_WIDTH] : 'h0;
 
     assign CPL_DEC_PSRAM_VALID_O = dec_psram_valid_r;
-    assign CPL_DEC_PSRAM_RDATA_O = dec_psram_valid_r ? q_psram_bank[`PSUM_WIDTH*dec_psram_bank_num_r +: `PSUM_WIDTH] : 'h0;
+    assign CPL_DEC_PSRAM_RDATA_O = dec_psram_valid_r ? q_psram_p0_bank[`PSUM_WIDTH*dec_psram_bank_num_r +: `PSUM_WIDTH] : 'h0;
 
     assign CPL_LOADER_ISRAM_VALID_O = mat_isram_valid_r;
     assign CPL_LOADER_ISRAM_RDATA_O = |mat_isram_valid_r ? q_isram_bank : 'h0;
