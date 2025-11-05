@@ -5,7 +5,7 @@ module systolic_mat_a_loader (
     input                              RST_N,
 
     // Data from Memory/Previous Stage
-    input  [`PE_ROW-1:0]               MAT_A_VALID_I,
+    input  [`PE_ROW-1:0]               LOADER_MAT_A_VALID_I,
     input  [`PE_ROW*`DATA_WIDTH-1:0]   MAT_A_I,
 
     // Data to Systolic Array PEs

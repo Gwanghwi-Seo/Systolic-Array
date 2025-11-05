@@ -36,6 +36,7 @@ module systolic_sramc (
     input [`PE_ROW-1:0]             REQ_MAT_ISRAM_EN_I,
     input [`ADDR_WIDTH-1:0]         REQ_MAT_ISRAM_ADDR_I,
 
+    input [`PE_ROW_ID_WIDTH-1:0]    REQ_MAT_WSRAM_PE_ROW_ID_I,
     input [`PE_COL-1:0]             REQ_MAT_WSRAM_EN_I,
     input [`ADDR_WIDTH-1:0]         REQ_MAT_WSRAM_ADDR_I,
 
@@ -52,9 +53,11 @@ module systolic_sramc (
     output [`DATA_WIDTH*`PE_ROW-1:0]CPL_LOADER_ISRAM_RDATA_O,
 
     output [`PE_COL-1:0]            CPL_LOADER_WSRAM_VALID_O,
+    output [`PE_COL-1:0]            CPL_LOADER_WSRAM_PE_ROW_ID_O,
     output [`DATA_WIDTH*`PE_COL-1:0]CPL_LOADER_WSRAM_RDATA_O,
 
     output [`PE_COL-1:0]            CPL_LOADER_PSRAM_VALID_O,
+    output [`ADDR_WIDTH*`PE_COL-1:0]CPL_LOADER_PSRAM_ADDR_O,
     output [`PSUM_WIDTH*`PE_COL-1:0]CPL_LOADER_PSRAM_RDATA_O
 );
 
@@ -103,6 +106,9 @@ module systolic_sramc (
     reg                             mat_isram_valid_r;
     reg                             mat_wsram_valid_r;
     reg                             mat_psram_valid_r;
+
+    reg [`PE_ROW_ID_WIDTH-1:0]      wsram_pe_row_id_r;
+    reg [`ADDR_WIDTH-1:0]           psram_addr_r;
 
     assign isram_bank_sel_onecold = ~(1 << REQ_DEC_ISRAM_BANK_NUM_I); // Reverse of one-hot (sram enable is active low)
     assign wsram_bank_sel_onecold = ~(1 << REQ_DEC_WSRAM_BANK_NUM_I);
@@ -269,9 +275,15 @@ module systolic_sramc (
             dec_wsram_valid_r <= ~REQ_DEC_WSRAM_EN_I & REQ_DEC_ISRAM_WE_I;
             dec_psram_valid_r <= ~REQ_DEC_PSRAM_EN_I & REQ_DEC_ISRAM_WE_I;
 
-            mat_isram_valid_r <= ~REQ_MAT_ISRAM_EN_I; // matmul, read only: EN active low == WE also 1
-            mat_wsram_valid_r <= ~REQ_MAT_WSRAM_EN_I;
-            mat_psram_valid_r <= ~REQ_MAT_PSRAM_EN_I;
+            mat_isram_valid_r <= |REQ_MAT_ISRAM_EN_I; // matmul, read only: EN active low == WE also 1
+            mat_wsram_valid_r <= |REQ_MAT_WSRAM_EN_I;
+            mat_psram_valid_r <= |REQ_MAT_PSRAM_EN_I;
+
+            if (|REQ_MAT_WSRAM_EN_I)
+                wsram_pe_row_id_r <= REQ_MAT_WSRAM_PE_ROW_ID_I;
+
+            if (|REQ_MAT_PSRAM_EN_I)
+                psram_addr_r <= REQ_MAT_PSRAM_ADDR_I;
         end
     end
 
@@ -287,10 +299,12 @@ module systolic_sramc (
 
     assign CPL_LOADER_ISRAM_VALID_O = mat_isram_valid_r;
     assign CPL_LOADER_ISRAM_RDATA_O = |mat_isram_valid_r ? q_isram_bank : 'h0;
-
+    
+    assign CPL_LOADER_WSRAM_PE_ROW_ID_O = wsram_pe_row_id_r;
     assign CPL_LOADER_WSRAM_VALID_O = mat_wsram_valid_r;
     assign CPL_LOADER_WSRAM_RDATA_O = |mat_wsram_valid_r ? q_wsram_bank : 'h0;
 
     assign CPL_LOADER_PSRAM_VALID_O = mat_psram_valid_r;
+    assign CPL_LOADER_PSRAM_ADDR_O = |mat_psram_valid_r ? {`PE_COL{psram_addr_r}} : 'h0;
     assign CPL_LOADER_PSRAM_RDATA_O = |mat_psram_valid_r ? q_psram_p0_bank : 'h0;
 endmodule

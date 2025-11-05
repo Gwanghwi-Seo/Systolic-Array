@@ -44,6 +44,16 @@ module tb_systolic_ctrl_decoder;
     logic                          CPL_DEC_PSRAM_VALID_I    ;
     logic [`PSUM_WIDTH-1:0]        CPL_DEC_PSRAM_RDATA_I    ;
 
+    logic [`PE_ROW-1:0]            REQ_MAT_ISRAM_EN_O       ;
+    logic [`ADDR_WIDTH-1:0]        REQ_MAT_ISRAM_ADDR_O     ;
+
+    logic [`PE_ROW_ID_WIDTH-1:0]   REQ_MAT_WSRAM_PE_ROW_ID_O;
+    logic [`PE_COL-1:0]            REQ_MAT_WSRAM_EN_O       ;
+    logic [`ADDR_WIDTH-1:0]        REQ_MAT_WSRAM_ADDR_O     ;
+
+    logic [`PE_COL-1:0]            REQ_MAT_PSRAM_EN_O       ;
+    logic [`ADDR_WIDTH-1:0]        REQ_MAT_PSRAM_ADDR_O     ;
+
     `ifdef VCS
         initial begin
             $fsdbDumpvars(0, tb_systolic_ctrl_decoder, "+all");
@@ -176,7 +186,48 @@ module tb_systolic_ctrl_decoder;
         $finish;
     end
 
-    systolic_ctrl_decoder U_CTRL_DEC (
+    // systolic_ctrl_decoder U_CTRL_DEC (
+    //     .CLK                      (CLK                      ),
+    //     .RST_N                    (RST_N                    ),
+
+    //     .REQ_CPU_OPC_I            (REQ_CPU_OPC_I            ), 
+    //     .REQ_CPU_VALID_I          (REQ_CPU_VALID_I          ), 
+    //     .REQ_CPU_READY_O          (REQ_CPU_READY_O          ), 
+    //     .REQ_CPU_DATA_I           (REQ_CPU_DATA_I           ), 
+    //                                
+    //     .CPL_CPU_VALID_O          (CPL_CPU_VALID_O          ), 
+    //     // .CPL_CPU_READY_I          (CPL_CPU_READY_I          ), 
+    //     .CPL_CPU_DATA_O           (CPL_CPU_DATA_O           ), 
+    //                                
+    //     .REQ_DEC_ISRAM_EN_O       (REQ_DEC_ISRAM_EN_O       ), 
+    //     .REQ_DEC_ISRAM_WE_O       (REQ_DEC_ISRAM_WE_O       ), 
+    //     .REQ_DEC_ISRAM_ADDR_O     (REQ_DEC_ISRAM_ADDR_O     ), 
+    //     .REQ_DEC_ISRAM_WDATA_O    (REQ_DEC_ISRAM_WDATA_O    ), 
+    //     .REQ_DEC_ISRAM_BANK_NUM_O (REQ_DEC_ISRAM_BANK_NUM_O ), 
+    //                                
+    //     .CPL_DEC_ISRAM_VALID_I    (CPL_DEC_ISRAM_VALID_I    ), 
+    //     .CPL_DEC_ISRAM_RDATA_I    (CPL_DEC_ISRAM_RDATA_I    ), 
+    //                                
+    //     .REQ_DEC_WSRAM_EN_O       (REQ_DEC_WSRAM_EN_O       ), 
+    //     .REQ_DEC_WSRAM_WE_O       (REQ_DEC_WSRAM_WE_O       ), 
+    //     .REQ_DEC_WSRAM_ADDR_O     (REQ_DEC_WSRAM_ADDR_O     ), 
+    //     .REQ_DEC_WSRAM_WDATA_O    (REQ_DEC_WSRAM_WDATA_O    ), 
+    //     .REQ_DEC_WSRAM_BANK_NUM_O (REQ_DEC_WSRAM_BANK_NUM_O ), 
+    //                                
+    //     .CPL_DEC_WSRAM_VALID_I    (CPL_DEC_WSRAM_VALID_I    ), 
+    //     .CPL_DEC_WSRAM_RDATA_I    (CPL_DEC_WSRAM_RDATA_I    ), 
+    //                                
+    //     .REQ_DEC_PSRAM_EN_O       (REQ_DEC_PSRAM_EN_O       ), 
+    //     .REQ_DEC_PSRAM_WE_O       (REQ_DEC_PSRAM_WE_O       ), 
+    //     .REQ_DEC_PSRAM_ADDR_O     (REQ_DEC_PSRAM_ADDR_O     ), 
+    //     .REQ_DEC_PSRAM_WDATA_O    (REQ_DEC_PSRAM_WDATA_O    ), 
+    //     .REQ_DEC_PSRAM_BANK_NUM_O (REQ_DEC_PSRAM_BANK_NUM_O ), 
+    //                                
+    //     .CPL_DEC_PSRAM_VALID_I    (CPL_DEC_PSRAM_VALID_I    ), 
+    //     .CPL_DEC_PSRAM_RDATA_I    (CPL_DEC_PSRAM_RDATA_I    ) 
+    // );
+
+    systolic_ctrl U_CTRL(
         .CLK                      (CLK                      ),
         .RST_N                    (RST_N                    ),
 
@@ -214,13 +265,26 @@ module tb_systolic_ctrl_decoder;
         .REQ_DEC_PSRAM_BANK_NUM_O (REQ_DEC_PSRAM_BANK_NUM_O ), 
                                    
         .CPL_DEC_PSRAM_VALID_I    (CPL_DEC_PSRAM_VALID_I    ), 
-        .CPL_DEC_PSRAM_RDATA_I    (CPL_DEC_PSRAM_RDATA_I    ) 
+        .CPL_DEC_PSRAM_RDATA_I    (CPL_DEC_PSRAM_RDATA_I    ),
+
+        .REQ_MAT_ISRAM_EN_O       (REQ_MAT_ISRAM_EN_O),
+        .REQ_MAT_ISRAM_ADDR_O     (REQ_MAT_ISRAM_ADDR_O),
+
+        .REQ_MAT_WSRAM_PE_ROW_ID_O(REQ_MAT_WSRAM_PE_ROW_ID_O),
+        .REQ_MAT_WSRAM_EN_O       (REQ_MAT_WSRAM_EN_O),
+        .REQ_MAT_WSRAM_ADDR_O     (REQ_MAT_WSRAM_ADDR_O),
+
+        .REQ_MAT_PSRAM_EN_O       (REQ_MAT_PSRAM_EN_O),
+        .REQ_MAT_PSRAM_ADDR_O     (REQ_MAT_PSRAM_ADDR_O)
     );
+
+
 
     systolic_sramc U_SRAMC (
         .CLK                      (CLK),
         .RST_N                    (RST_N),
-    
+
+        // CTRL IF
         .REQ_DEC_ISRAM_EN_I       (REQ_DEC_ISRAM_EN_O       ),
         .REQ_DEC_ISRAM_WE_I       (REQ_DEC_ISRAM_WE_O       ),
         .REQ_DEC_ISRAM_ADDR_I     (REQ_DEC_ISRAM_ADDR_O     ),
@@ -248,26 +312,31 @@ module tb_systolic_ctrl_decoder;
         .CPL_DEC_PSRAM_VALID_O    (CPL_DEC_PSRAM_VALID_I    ),
         .CPL_DEC_PSRAM_RDATA_O    (CPL_DEC_PSRAM_RDATA_I    ),
     
-        .REQ_MAT_ISRAM_EN_I       (/* floating */),
-        .REQ_MAT_ISRAM_ADDR_I     (/* floating */),
+        .REQ_MAT_ISRAM_EN_I       (REQ_MAT_ISRAM_EN_O),
+        .REQ_MAT_ISRAM_ADDR_I     (REQ_MAT_ISRAM_ADDR_O),
 
-        .REQ_MAT_WSRAM_EN_I       (/* floating */),
-        .REQ_MAT_WSRAM_ADDR_I     (/* floating */),
+        .REQ_MAT_WSRAM_PE_ROW_ID_I(REQ_MAT_WSRAM_PE_ROW_ID_O),
+        .REQ_MAT_WSRAM_EN_I       (REQ_MAT_WSRAM_EN_O),
+        .REQ_MAT_WSRAM_ADDR_I     (REQ_MAT_WSRAM_ADDR_O),
 
-        .REQ_MAT_PSRAM_EN_I       (/* floating */),
-        .REQ_MAT_PSRAM_ADDR_I     (/* floating */),
+        .REQ_MAT_PSRAM_EN_I       (REQ_MAT_PSRAM_EN_O),
+        .REQ_MAT_PSRAM_ADDR_I     (REQ_MAT_PSRAM_ADDR_O),
 
+        // PE ARRAY IF
         .REQ_PEARR_PSRAM_EN_I     (/* floating */),
         .REQ_PEARR_PSRAM_ADDR_I   (/* floating */),
         .REQ_PEARR_PSRAM_WDATA_I  (/* floating */),
-    
+
+        // LOADER IF
         .CPL_LOADER_ISRAM_VALID_O (/* floating */),
+        .CPL_LOADER_WSRAM_PE_ROW_ID_O (/* floating */),
         .CPL_LOADER_ISRAM_RDATA_O (/* floating */),
 
         .CPL_LOADER_WSRAM_VALID_O (/* floating */),
         .CPL_LOADER_WSRAM_RDATA_O (/* floating */),
 
         .CPL_LOADER_PSRAM_VALID_O (/* floating */),
+        .CPL_LOADER_PSRAM_ADDR_O  (/* floating */),
         .CPL_LOADER_PSRAM_RDATA_O (/* floating */)
     );
 

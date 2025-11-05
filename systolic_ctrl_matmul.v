@@ -19,10 +19,11 @@ module systolic_ctrl_matmul (
     input wire [`DATA_WIDTH-1:0]     PARAM_N_I,
     input wire [`DATA_WIDTH*2-1:0]   PARAM_K_I,
 
- .   // SRAMC IF
+    // SRAMC IF
     output [`PE_ROW-1:0]             REQ_MAT_ISRAM_EN_O,
     output [`ADDR_WIDTH-1:0]         REQ_MAT_ISRAM_ADDR_O,
 
+    output [`PE_ROW_ID_WIDTH-1:0]    REQ_MAT_WSRAM_PE_ROW_ID_O,
     output [`PE_COL-1:0]             REQ_MAT_WSRAM_EN_O,
     output [`ADDR_WIDTH-1:0]         REQ_MAT_WSRAM_ADDR_O,
 
@@ -51,11 +52,12 @@ module systolic_ctrl_matmul (
     reg [`PARAM_WIDTH-1:0]      isram_addr_r, wsram_addr_r, psram_addr_r;
     wire [`PARAM_WIDTH-1:0]     isram_addr_max, wsram_addr_max, psram_addr_max;
     wire                        is_isram_addr_max, is_wsram_addr_max, is_psram_addr_max;
+    reg [`PE_ROW_ID_WIDTH-1:0]  wsram_pe_row_id_r;
 
     wire                        is_last_m, is_last_n, is_last_k;
     wire                        has_n_rem, has_k_rem;
 
-    wire [`PE_ROW-1:0]          isram_load_mask
+    wire [`PE_ROW-1:0]          isram_load_mask;
     wire [`PE_COL-1:0]          wsram_load_mask, psram_load_mask, psram_init_mask;
 
     // one matmul needs psum loading cycle + `PE_ROW depth
@@ -82,7 +84,7 @@ module systolic_ctrl_matmul (
     assign is_wsram_addr_max = (wsram_addr_r == (wsram_addr_max - `PARAM_WIDTH'd1));
     assign is_psram_addr_max = (psram_addr_r == (psram_addr_max - `PARAM_WIDTH'd1));
 
-    assign is_matmul_done = (wait_matmul_count_r == ((1 << ($clog2(PE_ROW)+1)) - 1)); // wait_matmul_count_r == 2*PE_ROW
+    assign is_matmul_done = (wait_matmul_count_r == ((1 << ($clog2(`PE_ROW)+1)) - 1)); // wait_matmul_count_r == 2*PE_ROW
 
     // State transition comb logic
     always @* begin
@@ -135,7 +137,7 @@ module systolic_ctrl_matmul (
             k_rem_r <= 'h0;
         end
         else begin
-            if (next_state_r[ST_SET_PARAM]) begin
+            if (current_state_r[ST_SET_PARAM]) begin
                 m_iter_r <= 'h0;
                 n_iter_r <= 'h0;
                 k_iter_r <= 'h0;
@@ -144,19 +146,20 @@ module systolic_ctrl_matmul (
                 n_iter_max_r <= (PARAM_N_I + `PE_COL - 1) >> $clog2(`PE_COL);
                 k_iter_max_r <= (PARAM_K_I + `PE_ROW - 1) >> $clog2(`PE_ROW);
 
-                n_rem_r <= (PARAM_N_I & ((1 << $clog2(`PE_COL)) - 1)) // Modulo
-                k_rem_r <= (PARAM_K_I & ((1 << $clog2(`PE_ROW)) - 1))
+                n_rem_r <= (PARAM_N_I & ((1 << $clog2(`PE_COL)) - 1)); // Modulo
+                k_rem_r <= (PARAM_K_I & ((1 << $clog2(`PE_ROW)) - 1));
             end
 
             if (is_psram_addr_max)
                 m_iter_r <= m_iter_r + `PARAM_WIDTH'd1;
 
-            if (is_last_k && is_isram_addr_max)
+            if (is_last_k && is_isram_addr_max) begin
                 k_iter_r <= 'h0;
                 n_iter_r <= n_iter_r + `PARAM_WIDTH'd1;
-            else
+            end
+            else begin
                 k_iter_r <= k_iter_r + `PARAM_WIDTH'd1;
-
+            end
         end
     end
 
@@ -185,6 +188,11 @@ module systolic_ctrl_matmul (
                 else begin
                     wsram_addr_r <= wsram_addr_r + `PARAM_WIDTH'd1;
                 end
+
+                // Note: The pe_row_id must be synchronized with wsram_valid_r
+                // Due to load wsram consumes 1-cycle,
+                // Simply assign wsram_pe_row_id = wsram_addr_r is prohibited.
+                wsram_pe_row_id_r <= wsram_addr_r;
             end
 
             // psram addr
@@ -199,7 +207,7 @@ module systolic_ctrl_matmul (
                     if (is_last_n)
                         base_psram_addr_r <= 'h0;
                     else
-                        base_psram_addr_r <= base_psram_addr + psram_addr_r;
+                        base_psram_addr_r <= base_psram_addr_r + psram_addr_r;
                 else
                     psram_addr_r <= psram_addr_r + `PARAM_WIDTH'd1;
             end
@@ -216,7 +224,7 @@ module systolic_ctrl_matmul (
 
             // wait matmul count
             if (current_state_r[ST_WAIT_MATMUL])
-                wait_matmul_count_r <= wait_matmul_count_r + $clog2(`PE_ROW)'d1;
+                wait_matmul_count_r <= wait_matmul_count_r + 1'd1;
             else
                 wait_matmul_count_r <= 'h0;
         end
@@ -228,6 +236,7 @@ module systolic_ctrl_matmul (
     assign REQ_MAT_ISRAM_EN_O   = current_state_r[ST_LD_MAT_A] ? isram_load_mask : 'h0;
     assign REQ_MAT_ISRAM_ADDR_O = base_isram_addr_r + isram_addr_r;
 
+    assign REQ_MAT_WSRAM_PE_ROW_ID_O = wsram_pe_row_id_r;
     assign REQ_MAT_WSRAM_EN_O   = current_state_r[ST_LD_MAT_B] ? wsram_load_mask : 'h0;
     assign REQ_MAT_WSRAM_ADDR_O = base_wsram_addr_r + wsram_addr_r;
 
