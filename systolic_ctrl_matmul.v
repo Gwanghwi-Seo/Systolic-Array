@@ -15,9 +15,9 @@ module systolic_ctrl_matmul (
     input wire                       START_MATMUL_I,
     output                           DONE_MATMUL_O,
 
-    input wire [`DATA_WIDTH-1:0]     PARAM_M_I,
-    input wire [`DATA_WIDTH-1:0]     PARAM_N_I,
-    input wire [`DATA_WIDTH*2-1:0]   PARAM_K_I,
+    input wire [`PARAM_WIDTH-1:0]    PARAM_M_I,
+    input wire [`PARAM_WIDTH-1:0]    PARAM_N_I,
+    input wire [`PARAM_WIDTH-1:0]    PARAM_K_I,
 
     // SRAMC IF
     output [`PE_ROW-1:0]             REQ_MAT_ISRAM_EN_O,
@@ -243,5 +243,23 @@ module systolic_ctrl_matmul (
     assign REQ_MAT_PSRAM_EN_O   = current_state_r[ST_INIT_PSUM] ? psram_init_mask :
                                   current_state_r[ST_LD_MAT_B] ? psram_load_mask : 'h0;
     assign REQ_MAT_PSRAM_ADDR_O = base_psram_addr_r + psram_addr_r;
+
+    `ifdef SIM
+        // string sim_current_state;
+        reg [511:0] sim_current_state;
+
+        always @* begin
+            case (1'b1)
+                current_state_r[ST_IDLE]:           sim_current_state = "ST_IDLE";
+                current_state_r[ST_SET_PARAM]:      sim_current_state = "ST_SET_PARAM";
+                current_state_r[ST_INIT_PSUM]:      sim_current_state = "ST_INIT_PSUM";
+                current_state_r[ST_LD_MAT_A]:       sim_current_state = "ST_LD_MAT_A";
+                current_state_r[ST_LD_MAT_B]:       sim_current_state = "ST_LD_MAT_B";
+                current_state_r[ST_WAIT_MATMUL]:    sim_current_state = "ST_WAIT_MATMUL";
+                current_state_r[ST_DONE]:           sim_current_state = "ST_DONE";
+                default:                            sim_current_state = "ST_UNKNOWN";
+            endcase
+        end
+    `endif
 
 endmodule

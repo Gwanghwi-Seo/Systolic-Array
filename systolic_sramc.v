@@ -43,22 +43,22 @@ module systolic_sramc (
     input [`PE_COL-1:0]             REQ_MAT_PSRAM_EN_I,
     input [`ADDR_WIDTH-1:0]         REQ_MAT_PSRAM_ADDR_I,
 
-    // pe_array IF, write only
-    input [`PE_COL-1:0]             REQ_PEARR_PSRAM_EN_I,
-    input [`ADDR_WIDTH-1:0]         REQ_PEARR_PSRAM_ADDR_I,
-    input [`PSUM_WIDTH*`PE_COL-1:0] REQ_PEARR_PSRAM_WDATA_I,
-
     // Input, Weight, PSUM Loader If
     output [`PE_ROW-1:0]            CPL_LOADER_ISRAM_VALID_O,
     output [`DATA_WIDTH*`PE_ROW-1:0]CPL_LOADER_ISRAM_RDATA_O,
 
     output [`PE_COL-1:0]            CPL_LOADER_WSRAM_VALID_O,
-    output [`PE_COL-1:0]            CPL_LOADER_WSRAM_PE_ROW_ID_O,
+    output [`PE_ROW_ID_WIDTH*`PE_COL-1:0]CPL_LOADER_WSRAM_PE_ROW_ID_O,
     output [`DATA_WIDTH*`PE_COL-1:0]CPL_LOADER_WSRAM_RDATA_O,
 
     output [`PE_COL-1:0]            CPL_LOADER_PSRAM_VALID_O,
     output [`ADDR_WIDTH*`PE_COL-1:0]CPL_LOADER_PSRAM_ADDR_O,
-    output [`PSUM_WIDTH*`PE_COL-1:0]CPL_LOADER_PSRAM_RDATA_O
+    output [`PSUM_WIDTH*`PE_COL-1:0]CPL_LOADER_PSRAM_RDATA_O,
+
+    // pe_array IF, write only
+    input [`PE_COL-1:0]             REQ_PEARR_PSRAM_EN_I,
+    input [`ADDR_WIDTH*`PE_COL-1:0] REQ_PEARR_PSRAM_ADDR_I,
+    input [`PSUM_WIDTH*`PE_COL-1:0] REQ_PEARR_PSRAM_WDATA_I
 );
 
     // Input SRAM (ISRAM)
@@ -148,7 +148,7 @@ module systolic_sramc (
 
     assign cen_psram_p1_bank = ~REQ_PEARR_PSRAM_EN_I;
     assign wen_psram_p1_bank = 'h0; // pe_arry write only
-    assign a_psram_p1 = REQ_PEARR_PSRAM_ADDR_I;
+    assign a_psram_p1_bank = REQ_PEARR_PSRAM_ADDR_I;
     assign d_psram_p1_bank = REQ_PEARR_PSRAM_WDATA_I;
 
     generate

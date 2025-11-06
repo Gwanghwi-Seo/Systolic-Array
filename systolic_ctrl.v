@@ -55,9 +55,9 @@ module systolic_ctrl (
 
     wire start_matmul;
     wire done_matmul;
-    wire param_m;
-    wire param_n;
-    wire param_k;
+    wire [`PARAM_WIDTH-1:0] param_m;
+    wire [`PARAM_WIDTH-1:0] param_n;
+    wire [`PARAM_WIDTH-1:0] param_k;
 
     systolic_ctrl_decoder U_CTRL_DEC (
         .CLK                        (CLK                     ),
