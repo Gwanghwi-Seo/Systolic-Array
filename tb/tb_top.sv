@@ -150,7 +150,7 @@ module tb_top;
 
         start_matmul();
 
-        repeat(10) @(posedge CLK);
+        repeat(1000) @(posedge CLK);
         $finish;
     end
 

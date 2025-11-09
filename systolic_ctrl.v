@@ -50,6 +50,7 @@ module systolic_ctrl (
     output [`ADDR_WIDTH-1:0]        REQ_MAT_WSRAM_ADDR_O,
 
     output [`PE_COL-1:0]            REQ_MAT_PSRAM_EN_O,
+    output                          REQ_MAT_PSRAM_WE_O,
     output [`ADDR_WIDTH-1:0]        REQ_MAT_PSRAM_ADDR_O
 );
 
@@ -126,6 +127,7 @@ module systolic_ctrl (
         .REQ_MAT_WSRAM_ADDR_O      (REQ_MAT_WSRAM_ADDR_O    ),
 
         .REQ_MAT_PSRAM_EN_O        (REQ_MAT_PSRAM_EN_O      ),
+        .REQ_MAT_PSRAM_WE_O        (REQ_MAT_PSRAM_WE_O      ),
         .REQ_MAT_PSRAM_ADDR_O      (REQ_MAT_PSRAM_ADDR_O    )
     );
 

@@ -51,6 +51,7 @@ module systolic (
     wire [`ADDR_WIDTH-1:0]          req_mat_wsram_addr      ;
 
     wire [`PE_COL-1:0]              req_mat_psram_en        ;
+    wire                            req_mat_psram_we        ;
     wire [`ADDR_WIDTH-1:0]          req_mat_psram_addr      ;
 
     // Input, Weight, PSUM Loader If
@@ -131,6 +132,7 @@ module systolic (
         .REQ_MAT_WSRAM_ADDR_O       (req_mat_wsram_addr     ),
                                      
         .REQ_MAT_PSRAM_EN_O         (req_mat_psram_en       ),
+        .REQ_MAT_PSRAM_WE_O         (req_mat_psram_we       ),
         .REQ_MAT_PSRAM_ADDR_O       (req_mat_psram_addr     )
     );
 
@@ -173,6 +175,7 @@ module systolic (
         .REQ_MAT_WSRAM_ADDR_I       (req_mat_wsram_addr     ),
                                      
         .REQ_MAT_PSRAM_EN_I         (req_mat_psram_en       ),
+        .REQ_MAT_PSRAM_WE_I         (req_mat_psram_we       ),
         .REQ_MAT_PSRAM_ADDR_I       (req_mat_psram_addr     ),
         
         // Loader IF

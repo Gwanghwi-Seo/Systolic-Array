@@ -41,6 +41,7 @@ module systolic_sramc (
     input [`ADDR_WIDTH-1:0]         REQ_MAT_WSRAM_ADDR_I,
 
     input [`PE_COL-1:0]             REQ_MAT_PSRAM_EN_I,
+    input                           REQ_MAT_PSRAM_WE_I,
     input [`ADDR_WIDTH-1:0]         REQ_MAT_PSRAM_ADDR_I,
 
     // Input, Weight, PSUM Loader If
@@ -60,12 +61,11 @@ module systolic_sramc (
     input [`ADDR_WIDTH*`PE_COL-1:0] REQ_PEARR_PSRAM_ADDR_I,
     input [`PSUM_WIDTH*`PE_COL-1:0] REQ_PEARR_PSRAM_WDATA_I
 );
-
-    // Input SRAM (ISRAM)
+// Input SRAM (ISRAM)
     wire [`PE_ROW-1:0]              cen_isram_bank;
     wire [`PE_ROW-1:0]              wen_isram_bank;
     wire [`ADDR_WIDTH-1:0]          a_isram;
-    wire [`DATA_WIDTH-1:0]          d_isram; // only decode writes data
+    wire [`DATA_WIDTH-1:0]          d_isram; // only decode writes data 
     wire [`DATA_WIDTH*`PE_ROW-1:0]  q_isram_bank;
 
     wire [`PE_ROW-1:0]              isram_bank_sel_onecold;
@@ -103,9 +103,9 @@ module systolic_sramc (
     reg [`BANK_NUM_WIDTH-1:0]       dec_wsram_bank_num_r;
     reg [`BANK_NUM_WIDTH-1:0]       dec_psram_bank_num_r;
 
-    reg                             mat_isram_valid_r;
-    reg                             mat_wsram_valid_r;
-    reg                             mat_psram_valid_r;
+    reg [`PE_ROW-1:0]               mat_isram_valid_r;
+    reg [`PE_COL-1:0]               mat_wsram_valid_r;
+    reg [`PE_COL-1:0]               mat_psram_valid_r;
 
     reg [`PE_ROW_ID_WIDTH-1:0]      wsram_pe_row_id_r;
     reg [`ADDR_WIDTH-1:0]           psram_addr_r;
@@ -134,13 +134,11 @@ module systolic_sramc (
     assign a_wsram = ~REQ_DEC_WSRAM_EN_I ? REQ_DEC_WSRAM_ADDR_I : REQ_MAT_WSRAM_ADDR_I;
     assign d_wsram = REQ_DEC_WSRAM_WDATA_I;
 
-    // PSRAM Usage: Decoder R/W, Matmul R/W, PE Array Write
-    // PSRAM port 0: Decoder read/write, matmul read
-    // PSRAM port 1: pe array write
     generate
         for (col = 0; col < `PE_COL; col = col + 1) begin: ASSIGN_PSRAM_P0_BANK
             assign cen_psram_p0_bank[col] = ~REQ_DEC_PSRAM_EN_I ? psram_bank_sel_onecold[col] : ~REQ_MAT_PSRAM_EN_I[col];
-            assign wen_psram_p0_bank[col] = ~REQ_DEC_PSRAM_EN_I ? REQ_DEC_PSRAM_WE_I : 1'b1;
+            // assign wen_psram_p0_bank[col] = ~REQ_DEC_PSRAM_EN_I ? REQ_DEC_PSRAM_WE_I : 1'b1;
+            assign wen_psram_p0_bank[col] = ~REQ_DEC_PSRAM_EN_I ? REQ_DEC_PSRAM_WE_I : REQ_MAT_PSRAM_WE_I;
         end
     endgenerate
     assign a_psram_p0 = ~REQ_DEC_PSRAM_EN_I ? REQ_DEC_PSRAM_ADDR_I : REQ_MAT_PSRAM_ADDR_I;
@@ -213,7 +211,9 @@ module systolic_sramc (
 
     generate
         for (col = 0; col < `PE_COL; col = col + 1) begin : GEN_PSRAM
-            // To do add: read, write port
+            // PSRAM Usage: Decoder R/W, Matmul R/W, PE Array Write
+            // PSRAM port 0: Decoder read/write, matmul read, write for init psram
+            // PSRAM port 1: write mac result (from pe array)
             `ifdef SIM
                 dpsram #(
                     .DEPTH(256),
@@ -268,6 +268,9 @@ module systolic_sramc (
             mat_isram_valid_r <= 'h0;
             mat_wsram_valid_r <= 'h0;
             mat_psram_valid_r <= 'h0;
+
+            wsram_pe_row_id_r <= 'h0;
+            psram_addr_r <= 'h0;
         end
         else begin
             // Active low
@@ -275,9 +278,9 @@ module systolic_sramc (
             dec_wsram_valid_r <= ~REQ_DEC_WSRAM_EN_I & REQ_DEC_ISRAM_WE_I;
             dec_psram_valid_r <= ~REQ_DEC_PSRAM_EN_I & REQ_DEC_ISRAM_WE_I;
 
-            mat_isram_valid_r <= |REQ_MAT_ISRAM_EN_I; // matmul, read only: EN active low == WE also 1
-            mat_wsram_valid_r <= |REQ_MAT_WSRAM_EN_I;
-            mat_psram_valid_r <= |REQ_MAT_PSRAM_EN_I;
+            mat_isram_valid_r <= REQ_MAT_ISRAM_EN_I; // matmul, read only: EN active low == WE also 1
+            mat_wsram_valid_r <= REQ_MAT_WSRAM_EN_I;
+            mat_psram_valid_r <= REQ_MAT_PSRAM_EN_I;
 
             if (|REQ_MAT_WSRAM_EN_I)
                 wsram_pe_row_id_r <= REQ_MAT_WSRAM_PE_ROW_ID_I;
@@ -300,7 +303,7 @@ module systolic_sramc (
     assign CPL_LOADER_ISRAM_VALID_O = mat_isram_valid_r;
     assign CPL_LOADER_ISRAM_RDATA_O = |mat_isram_valid_r ? q_isram_bank : 'h0;
     
-    assign CPL_LOADER_WSRAM_PE_ROW_ID_O = wsram_pe_row_id_r;
+    assign CPL_LOADER_WSRAM_PE_ROW_ID_O = {`PE_COL{wsram_pe_row_id_r}};
     assign CPL_LOADER_WSRAM_VALID_O = mat_wsram_valid_r;
     assign CPL_LOADER_WSRAM_RDATA_O = |mat_wsram_valid_r ? q_wsram_bank : 'h0;
 

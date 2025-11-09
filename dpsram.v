@@ -21,12 +21,12 @@ module dpsram #(
     reg [DATA_WIDTH-1:0] mem_r [0:DEPTH-1];
 
     // Initialize memory
-    integer i;
-    initial begin
-        for (i = 0; i < DEPTH; i = i + 1) begin
-            mem_r[i] = 'h0;
-        end
-    end
+    // integer i;
+    // initial begin
+    //     for (i = 0; i < DEPTH; i = i + 1) begin
+    //         mem_r[i] = 'h0;
+    //     end
+    // end
 
 
     // Port A

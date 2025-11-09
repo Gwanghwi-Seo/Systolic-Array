@@ -28,6 +28,7 @@ module systolic_ctrl_matmul (
     output [`ADDR_WIDTH-1:0]         REQ_MAT_WSRAM_ADDR_O,
 
     output [`PE_COL-1:0]             REQ_MAT_PSRAM_EN_O,
+    output                           REQ_MAT_PSRAM_WE_O,
     output [`ADDR_WIDTH-1:0]         REQ_MAT_PSRAM_ADDR_O
 );
 
@@ -52,7 +53,7 @@ module systolic_ctrl_matmul (
     reg [`PARAM_WIDTH-1:0]      isram_addr_r, wsram_addr_r, psram_addr_r;
     wire [`PARAM_WIDTH-1:0]     isram_addr_max, wsram_addr_max, psram_addr_max;
     wire                        is_isram_addr_max, is_wsram_addr_max, is_psram_addr_max;
-    reg [`PE_ROW_ID_WIDTH-1:0]  wsram_pe_row_id_r;
+    // reg [`PE_ROW_ID_WIDTH-1:0]  wsram_pe_row_id_r;
 
     wire                        is_last_m, is_last_n, is_last_k;
     wire                        has_n_rem, has_k_rem;
@@ -189,10 +190,10 @@ module systolic_ctrl_matmul (
                     wsram_addr_r <= wsram_addr_r + `PARAM_WIDTH'd1;
                 end
 
-                // Note: The pe_row_id must be synchronized with wsram_valid_r
-                // Due to load wsram consumes 1-cycle,
-                // Simply assign wsram_pe_row_id = wsram_addr_r is prohibited.
-                wsram_pe_row_id_r <= wsram_addr_r;
+                // // Note: The pe_row_id must be synchronized with wsram_valid_r
+                // // Due to load wsram consumes 1-cycle,
+                // // Simply assign wsram_pe_row_id = wsram_addr_r is prohibited.
+                // wsram_pe_row_id_r <= wsram_addr_r;
             end
 
             // psram addr
@@ -236,17 +237,19 @@ module systolic_ctrl_matmul (
     assign REQ_MAT_ISRAM_EN_O   = current_state_r[ST_LD_MAT_A] ? isram_load_mask : 'h0;
     assign REQ_MAT_ISRAM_ADDR_O = base_isram_addr_r + isram_addr_r;
 
-    assign REQ_MAT_WSRAM_PE_ROW_ID_O = wsram_pe_row_id_r;
+    // assign REQ_MAT_WSRAM_PE_ROW_ID_O = wsram_pe_row_id_r;
+    assign REQ_MAT_WSRAM_PE_ROW_ID_O = wsram_addr_r[`PE_ROW_ID_WIDTH-1:0];
     assign REQ_MAT_WSRAM_EN_O   = current_state_r[ST_LD_MAT_B] ? wsram_load_mask : 'h0;
     assign REQ_MAT_WSRAM_ADDR_O = base_wsram_addr_r + wsram_addr_r;
 
     assign REQ_MAT_PSRAM_EN_O   = current_state_r[ST_INIT_PSUM] ? psram_init_mask :
-                                  current_state_r[ST_LD_MAT_B] ? psram_load_mask : 'h0;
+                                  current_state_r[ST_LD_MAT_A] ? psram_load_mask : 'h0;
+    assign REQ_MAT_PSRAM_WE_O  = current_state_r[ST_INIT_PSUM] ? 1'b0 : 1'b1;
     assign REQ_MAT_PSRAM_ADDR_O = base_psram_addr_r + psram_addr_r;
 
     `ifdef SIM
         // string sim_current_state;
-        reg [511:0] sim_current_state;
+        reg [127:0] sim_current_state;
 
         always @* begin
             case (1'b1)

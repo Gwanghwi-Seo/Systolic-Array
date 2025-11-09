@@ -103,4 +103,18 @@ module systolic_pe_array (
             assign PEARR_MAT_PSUM_DATA_O[`PSUM_WIDTH*n +: `PSUM_WIDTH] = mat_psum_data[`PE_ROW][n];
         end
     endgenerate
+
+    generate
+        genvar g;
+
+        wire sim_pearr_mat_psum_valid_o[0:`PE_COL-1];
+        wire [`ADDR_WIDTH-1:0] sim_pearr_mat_psum_addr_o[0:`PE_COL-1];
+        wire [`PSUM_WIDTH-1:0] sim_pearr_mat_psum_data_o[0:`PE_COL-1];
+
+        for (g = 0; g < `PE_COL; g = g + 1) begin
+            assign sim_pearr_mat_psum_valid_o[g] = PEARR_MAT_PSUM_VALID_O[g];
+            assign sim_pearr_mat_psum_addr_o[g] = PEARR_MAT_PSUM_ADDR_O[`ADDR_WIDTH*g +: `ADDR_WIDTH];
+            assign sim_pearr_mat_psum_data_o[g] = PEARR_MAT_PSUM_DATA_O[`PSUM_WIDTH*g +: `PSUM_WIDTH];
+        end
+    endgenerate
 endmodule

@@ -33,4 +33,27 @@ generate
     end
 endgenerate
 
+`ifdef SIM
+    wire                   sim_loader_mat_psum_valid_i[0:`PE_COL-1];
+    wire [`ADDR_WIDTH-1:0] sim_loader_mat_psum_addr_i [0:`PE_COL-1];
+    wire [`PSUM_WIDTH-1:0] sim_loader_mat_psum_data_i [0:`PE_COL-1];
+
+    wire                   sim_loader_mat_psum_valid_o[0:`PE_COL-1];
+    wire [`ADDR_WIDTH-1:0] sim_loader_mat_psum_addr_o [0:`PE_COL-1];
+    wire [`PSUM_WIDTH-1:0] sim_loader_mat_psum_data_o [0:`PE_COL-1];
+
+    genvar g;
+    generate
+        for (g = 0; g < `PE_COL; g = g+1) begin
+            assign sim_loader_mat_psum_valid_i[g] = LOADER_MAT_PSUM_VALID_I[g];
+            assign sim_loader_mat_psum_addr_i[g] = LOADER_MAT_PSUM_ADDR_I[`ADDR_WIDTH*g +: `ADDR_WIDTH];
+            assign sim_loader_mat_psum_data_i[g] = LOADER_MAT_PSUM_DATA_I[`PSUM_WIDTH*g +: `PSUM_WIDTH];
+
+            assign sim_loader_mat_psum_valid_o[g] = LOADER_MAT_PSUM_VALID_O[g];
+            assign sim_loader_mat_psum_addr_o[g] = LOADER_MAT_PSUM_ADDR_O[`ADDR_WIDTH*g +: `ADDR_WIDTH];
+            assign sim_loader_mat_psum_data_o[g] = LOADER_MAT_PSUM_DATA_O[`PSUM_WIDTH*g +: `PSUM_WIDTH];
+        end
+    endgenerate
+`endif
+
 endmodule

@@ -31,11 +31,17 @@ module systolic_mat_a_loader (
     endgenerate
 
     `ifdef SIM
-        wire sim_mat_a_valid_o[0:`PE_ROW-1];
+        wire                   sim_mat_a_valid_i[0:`PE_ROW-1];
+        wire [`DATA_WIDTH-1:0] sim_mat_a_i[0:`PE_ROW-1];
+
+        wire                   sim_mat_a_valid_o[0:`PE_ROW-1];
         wire [`DATA_WIDTH-1:0] sim_mat_a_o[0:`PE_ROW-1];
 
         generate
             for (i = 0; i < `PE_ROW; i = i+1) begin
+                assign sim_mat_a_valid_i[i] = LOADER_MAT_A_VALID_I[i];
+                assign sim_mat_a_i[i] = LOADER_MAT_A_DATA_I[`DATA_WIDTH*i +: `DATA_WIDTH];
+
                 assign sim_mat_a_valid_o[i] = LOADER_MAT_A_VALID_O[i];
                 assign sim_mat_a_o[i] = LOADER_MAT_A_DATA_O[`DATA_WIDTH*i +: `DATA_WIDTH];
             end
