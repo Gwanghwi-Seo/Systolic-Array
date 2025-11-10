@@ -142,7 +142,7 @@ module systolic_sramc (
         end
     endgenerate
     assign a_psram_p0 = ~REQ_DEC_PSRAM_EN_I ? REQ_DEC_PSRAM_ADDR_I : REQ_MAT_PSRAM_ADDR_I;
-    assign d_psram_p0 = REQ_DEC_PSRAM_WDATA_I;
+    assign d_psram_p0 = ~REQ_DEC_PSRAM_EN_I ? REQ_DEC_PSRAM_WDATA_I : 'h0;
 
     assign cen_psram_p1_bank = ~REQ_PEARR_PSRAM_EN_I;
     assign wen_psram_p1_bank = 'h0; // pe_arry write only
@@ -280,7 +280,7 @@ module systolic_sramc (
 
             mat_isram_valid_r <= REQ_MAT_ISRAM_EN_I; // matmul, read only: EN active low == WE also 1
             mat_wsram_valid_r <= REQ_MAT_WSRAM_EN_I;
-            mat_psram_valid_r <= REQ_MAT_PSRAM_EN_I;
+            mat_psram_valid_r <= REQ_MAT_PSRAM_EN_I & REQ_MAT_PSRAM_WE_I; // WE: 1 -> Read
 
             if (|REQ_MAT_WSRAM_EN_I)
                 wsram_pe_row_id_r <= REQ_MAT_WSRAM_PE_ROW_ID_I;
