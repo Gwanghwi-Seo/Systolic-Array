@@ -280,7 +280,7 @@ module systolic_sramc (
 
             mat_isram_valid_r <= REQ_MAT_ISRAM_EN_I; // matmul, read only: EN active low == WE also 1
             mat_wsram_valid_r <= REQ_MAT_WSRAM_EN_I;
-            mat_psram_valid_r <= REQ_MAT_PSRAM_EN_I & REQ_MAT_PSRAM_WE_I; // WE: 1 -> Read
+            mat_psram_valid_r <= REQ_MAT_PSRAM_EN_I & {`PE_COL{REQ_MAT_PSRAM_WE_I}}; // WE: 1 -> Read
 
             if (|REQ_MAT_WSRAM_EN_I)
                 wsram_pe_row_id_r <= REQ_MAT_WSRAM_PE_ROW_ID_I;
