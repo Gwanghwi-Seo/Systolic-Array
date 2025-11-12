@@ -250,7 +250,7 @@ module systolic_ctrl_decoder(
     assign REQ_DEC_PSRAM_WE_O       = is_psram_access && (req_opc_r == `OPC_ST_SRAM)? 1'b0 : 1'b1;
     assign REQ_DEC_PSRAM_ADDR_O     = is_psram_access ? req_sram_addr : 'h0;
     assign REQ_DEC_PSRAM_WDATA_O    = is_psram_access && (req_opc_r == `OPC_ST_SRAM)? req_sram_wdata : 'h0;
-    assign REQ_DEC_PSRAM_BANK_NUM_O = is_psram_access ? req_sram_addr : 'h0;
+    assign REQ_DEC_PSRAM_BANK_NUM_O = is_psram_access ? req_sram_bank_num : 'h0;
 
     assign START_MATMUL_O = (current_state_r[ST_MATMUL_REQ]) ? 1'b1 : 1'b0;
     assign PARAM_M_O      = param_m_r;

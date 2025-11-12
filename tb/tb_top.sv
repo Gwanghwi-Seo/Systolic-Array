@@ -17,10 +17,25 @@ module tb_top;
     // logic                          CPL_CPU_READY_I          ;
     logic [`REQ_WIDTH-1:0]         CPL_CPU_DATA_O           ;
 
-    logic signed [7:0] mat_a[`PE_ROW][`PE_COL];
-    logic signed [7:0] mat_b[`PE_ROW][`PE_COL];
-    logic signed [23:0] mat_c[`PE_ROW][`PE_COL];
+    // logic signed [7:0] mat_a[`PE_ROW][`PE_COL];
+    // logic signed [7:0] mat_b[`PE_ROW][`PE_COL];
+    // logic signed [23:0] mat_c[`PE_ROW][`PE_COL];
 
+    logic signed [`DATA_WIDTH-1:0] mat_a[`PE_ROW][`PE_COL];
+    logic signed [`DATA_WIDTH-1:0] mat_b[`PE_ROW][`PE_COL];
+    logic signed [`PSUM_WIDTH-1:0] mat_c[`PE_ROW][`PE_COL];
+
+
+    `ifdef VCS
+        initial begin
+            $fsdbDumpvars(0, tb_top, "+all");
+        end
+    `endif
+
+    initial begin
+        CLK = 0;
+        forever #5 CLK = ~CLK;
+    end
 
     `ifdef VCS
         initial begin
@@ -70,8 +85,8 @@ module tb_top;
 
     task automatic store_sram (
         bit [`SRAM_TRG_WIDTH-1:0] trg,
-        bit [`BANK_NUM_WIDTH-1:0] bank_num,
         bit [`ADDR_WIDTH-1:0] addr,
+        bit [`BANK_NUM_WIDTH-1:0] bank_num,
         bit [`DATA_WIDTH-1:0] data
     );
 
@@ -92,8 +107,8 @@ module tb_top;
 
     task automatic load_sram (
         bit [`SRAM_TRG_WIDTH-1:0] trg,
-        bit [`BANK_NUM_WIDTH-1:0] bank_num,
-        bit [`ADDR_WIDTH-1:0] addr
+        bit [`ADDR_WIDTH-1:0] addr,
+        bit [`BANK_NUM_WIDTH-1:0] bank_num
     );
         do begin
             @(posedge CLK);
@@ -139,29 +154,29 @@ module tb_top;
         get_param(`PARAM_K);
 
         // 8x8 matmul
-        for (int i = 0; i < `PE_ROW; i++) begin
-            for (int j = 0; j < `PE_ROW; j++) begin
-                // trg, bank, addr, data
-                bit [7:0] rand_mat_a;
+        for (int m = 0; m < `PE_ROW; m++) begin
+            for (int k = 0; k < `PE_ROW; k++) begin
+                // trg, addr, bank, data
+                logic signed [`DATA_WIDTH-1:0] rand_mat_a;
                 rand_mat_a = $random;
 
-                mat_a[i][j] = rand_mat_a;
+                mat_a[m][k] = rand_mat_a;
 
                 // store_sram(`TRG_ISRAM, i, j, (i+1));
-                store_sram(`TRG_ISRAM, j, i, rand_mat_a);
+                store_sram(`TRG_ISRAM, m, k, rand_mat_a);
             end
         end
 
-        for (int i = 0; i < `PE_COL; i++) begin
-            for (int j = 0; j < `PE_ROW; j++) begin
+        for (int k = 0; k < `PE_COL; k++) begin
+            for (int n = 0; n < `PE_ROW; n++) begin
                 // trg, bank, addr, data
-                bit [7:0] rand_mat_b;
+                logic signed [7:0] rand_mat_b;
                 rand_mat_b = $random;
 
-                mat_b[i][j] = rand_mat_b;
+                mat_b[k][n] = rand_mat_b;
 
                 // store_sram(`TRG_WSRAM, i, j, (i+1));
-                store_sram(`TRG_WSRAM, j, i, rand_mat_b);
+                store_sram(`TRG_WSRAM, k, n, rand_mat_b);
             end
         end
 
@@ -175,8 +190,8 @@ module tb_top;
         $display("Matrix A");
         $display("==============================================");
         for (int m = 0; m < `PE_ROW; m++) begin
-            for (int n = 0; n < `PE_COL; n++) begin
-                $write("%d ", mat_a[m][n]);
+            for (int k = 0; k < `PE_COL; k++) begin
+                $write("%d ", mat_a[m][k]);
             end
             $display("");
         end
@@ -184,9 +199,9 @@ module tb_top;
         $display("==============================================");
         $display("Matrix B");
         $display("==============================================");
-        for (int m = 0; m < `PE_ROW; m++) begin
+        for (int k = 0; k < `PE_ROW; k++) begin
             for (int n = 0; n < `PE_COL; n++) begin
-                $write("%d ", mat_b[m][n]);
+                $write("%d ", mat_b[k][n]);
             end
             $display("");
         end
@@ -194,14 +209,15 @@ module tb_top;
         $display("==============================================");
         $display("DUT Matrix C");
         $display("==============================================");
-        for (int i = 0; i < `PE_ROW; i++) begin
-            for (int j = 0; j < `PE_COL; j++) begin
-                load_sram(`TRG_PSRAM, j, i);
+        for (int m = 0; m < `PE_ROW; m++) begin
+            for (int n = 0; n < `PE_COL; n++) begin
+                load_sram(`TRG_PSRAM, m, n);
+
                 do begin
                     @(posedge CLK);
                 end while (!CPL_CPU_VALID_O);
                 
-                $write("%d ", CPL_CPU_DATA_O);
+                $write("%d ", $signed(CPL_CPU_DATA_O[`PSUM_WIDTH-1:0]));
             end
             $display("");
         end
@@ -209,11 +225,15 @@ module tb_top;
         $display("==============================================");
         $display("EXP Matrix C");
         $display("==============================================");
+        for (int m = 0; m < `PE_ROW; m++)
+            for (int n = 0; n < `PE_COL; n++)
+                mat_c[m][n] = 0;
+
+
         for (int m = 0; m < `PE_ROW; m++) begin
             for (int n = 0; n < `PE_COL; n++) begin
-                mat_c[m][n] = 0;
-                for (int k = 0; k < `PE_COL; k++) begin
-                    mat_c[m][n] = mat_a[m][k] * mat_b[k][n];
+                for (int k = 0; k < `PE_ROW; k++) begin
+                    mat_c[m][n] += mat_a[m][k] * mat_b[k][n];
                 end
             end
         end
