@@ -49,9 +49,9 @@ module systolic_ctrl_matmul (
     reg [`PARAM_WIDTH-1:0]      m_iter_max_r, n_iter_max_r, k_iter_max_r;
     reg [`PARAM_WIDTH-1:0]      m_iter_r, n_iter_r, k_iter_r;
 
-    reg [`PARAM_WIDTH-1:0]      base_isram_addr_r, base_wsram_addr_r, base_psram_addr_r;
-    reg [`PARAM_WIDTH-1:0]      isram_addr_r, wsram_addr_r, psram_addr_r;
-    wire [`PARAM_WIDTH-1:0]     isram_addr_max, wsram_addr_max, psram_addr_max;
+    reg  [`ADDR_WIDTH-1:0]     base_isram_addr_r, base_wsram_addr_r, base_psram_addr_r;
+    reg  [`ADDR_WIDTH-1:0]     isram_addr_r, wsram_addr_r, psram_addr_r;
+    wire [`ADDR_WIDTH-1:0]     isram_addr_max, wsram_addr_max, psram_addr_max;
     wire                        is_isram_addr_max, is_wsram_addr_max, is_psram_addr_max;
     // reg [`PE_ROW_ID_WIDTH-1:0]  wsram_pe_row_id_r;
 
@@ -187,7 +187,7 @@ module systolic_ctrl_matmul (
                         base_wsram_addr_r <= base_wsram_addr_r + wsram_addr_r;
                 end
                 else begin
-                    wsram_addr_r <= wsram_addr_r + `PARAM_WIDTH'd1;
+                    wsram_addr_r <= wsram_addr_r + 1;
                 end
 
                 // // Note: The pe_row_id must be synchronized with wsram_valid_r
@@ -201,7 +201,7 @@ module systolic_ctrl_matmul (
                 if (is_last_m && is_psram_addr_max)
                     psram_addr_r <= 'h0;
                 else
-                    psram_addr_r <= psram_addr_r + `PARAM_WIDTH'd1;
+                    psram_addr_r <= psram_addr_r + 1'd1;
             end
             else if (current_state_r[ST_LD_MAT_A]) begin
                 if (is_last_k && is_psram_addr_max)
@@ -210,7 +210,7 @@ module systolic_ctrl_matmul (
                     else
                         base_psram_addr_r <= base_psram_addr_r + psram_addr_r;
                 else
-                    psram_addr_r <= psram_addr_r + `PARAM_WIDTH'd1;
+                    psram_addr_r <= psram_addr_r + 1'd1;
             end
            
             // isram addr
@@ -219,7 +219,7 @@ module systolic_ctrl_matmul (
                     isram_addr_r <= 'h0;
                 end
                 else begin
-                    isram_addr_r <= isram_addr_r + `PARAM_WIDTH'd1;
+                    isram_addr_r <= isram_addr_r + 1'd1;
                 end
             end
 

@@ -63,7 +63,7 @@ module systolic_ctrl_decoder(
 
     localparam  NUM_STATE = 6;
 
-    reg [NUM_STATE-1:0]         current_state_r, next_state_r;
+    reg [NUM_STATE-1:0]         current_state_r, next_state;
 
     // req packet fields
     reg [`OPC_WIDTH-1:0]        req_opc_r;
@@ -97,51 +97,51 @@ module systolic_ctrl_decoder(
     assign req_sram_wdata      = req_data_r[`DATA_OFFSET     +:  `DATA_WIDTH];
 
     always @* begin
-        next_state_r = current_state_r;
+        next_state = current_state_r;
 
         case (1)
             current_state_r[ST_IDLE]: begin
                 if (REQ_CPU_VALID_I && REQ_CPU_READY_O) begin
-                    next_state_r = (1 << ST_DECODE);
+                    next_state = (1 << ST_DECODE);
                 end
             end
             current_state_r[ST_DECODE]: begin
                 case (req_opc_r)
                     `OPC_NOP: begin
-                        next_state_r = (1 << ST_DONE);
+                        next_state = (1 << ST_DONE);
                     end
                     `OPC_SET_PARAM: begin
-                        // next_state_r = (1 << ST_DONE);
-                        next_state_r = (1 << ST_IDLE);
+                        // next_state = (1 << ST_DONE);
+                        next_state = (1 << ST_IDLE);
                     end
                     `OPC_GET_PARAM: begin
-                        next_state_r = (1 << ST_DONE);
+                        next_state = (1 << ST_DONE);
                     end
                     `OPC_ST_SRAM: begin // Store to SRAM
-                        // next_state_r = (1 << ST_DONE);
-                        next_state_r = (1 << ST_IDLE);
+                        // next_state = (1 << ST_DONE);
+                        next_state = (1 << ST_IDLE);
                     end
                     `OPC_LD_SRAM: begin
-                        next_state_r = (1 << ST_SRAM_RD_CPL);
+                        next_state = (1 << ST_SRAM_RD_CPL);
                     end
                     `OPC_MATMUL: begin
-                        next_state_r = (1 << ST_MATMUL_REQ);
+                        next_state = (1 << ST_MATMUL_REQ);
                     end
                 endcase
             end
             current_state_r[ST_SRAM_RD_CPL]: begin
-                next_state_r = (1 << ST_DONE);
+                next_state = (1 << ST_DONE);
             end
             current_state_r[ST_MATMUL_REQ]: begin
-                next_state_r = (1 << ST_MATMUL_CPL);
+                next_state = (1 << ST_MATMUL_CPL);
             end
             current_state_r[ST_MATMUL_CPL]: begin
                 if (DONE_MATMUL_I) begin
-                    next_state_r = (1 << ST_DONE);
+                    next_state = (1 << ST_DONE);
                 end
             end
             current_state_r[ST_DONE]: begin
-                next_state_r = (1 << ST_IDLE);
+                next_state = (1 << ST_IDLE);
             end
             default:;
         endcase
@@ -153,7 +153,7 @@ module systolic_ctrl_decoder(
             current_state_r <= (1 << ST_IDLE);
         end
         else begin
-            current_state_r <= next_state_r;
+            current_state_r <= next_state;
         end
     end
 
