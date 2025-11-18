@@ -34,7 +34,7 @@ module systolic (
     wire                            cpl_dec_wsram_valid     ;
     wire [`DATA_WIDTH-1:0]          cpl_dec_wsram_rdata     ;
 
-    wire                            req_dec_psram_en        ;;// Active low
+    wire                            req_dec_psram_en        ;// Active low
     wire                            req_dec_psram_we        ;
     wire [`ADDR_WIDTH-1:0]          req_dec_psram_addr      ;
     wire [`PSUM_WIDTH-1:0]          req_dec_psram_wdata     ;
