@@ -29,9 +29,12 @@ module tb_top;
         REQ_CPU_OPC_I <= 'h0;
         REQ_CPU_DATA_I <= 'h0;
 
-        dim_m = 8;
-        dim_n = 8;
-        dim_k = 8;
+        repeat(10) @(posedge CLK);
+        RST_N <= 1;
+
+        dim_m = 4;
+        dim_k = 4;
+        dim_n = 4;
 
         mat_a = new("mat_a", dim_m, dim_k);
         mat_b = new("mat_b", dim_k, dim_n);
@@ -42,16 +45,18 @@ module tb_top;
         mat_a.display();
         mat_b.display();
 
-        load_mat_a_sram(mat_a, dim_m, dim_n, dim_k);
-        load_mat_b_sram(mat_b, dim_m, dim_n, dim_k);
-            
-        repeat(10) @(posedge CLK);
-        RST_N <= 1;
+        set_param(`PARAM_M, dim_m);
+        set_param(`PARAM_N, dim_n);
+        set_param(`PARAM_K, dim_k);
 
+        store_mat_a_sram(mat_a, dim_m, dim_n, dim_k);
+        store_mat_b_sram(mat_b, dim_m, dim_n, dim_k);
 
-        // do begin
-        //     @(posedge CLK);
-        // end while (!CPL_CPU_VALID_O);
+        start_matmul();
+
+        do begin
+            @(posedge CLK);
+        end while (!CPL_CPU_VALID_O);
 
         // $display("==============================================");
         // $display("DUT Matrix C");
@@ -68,6 +73,9 @@ module tb_top;
         //     end
         //     $display("");
         // end
+        
+        // // check golden reference
+        // mat_a.multiply(mat_b);
 
         repeat(10) @(posedge CLK);
         $finish;

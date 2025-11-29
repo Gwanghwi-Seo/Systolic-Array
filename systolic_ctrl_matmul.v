@@ -73,7 +73,8 @@ module systolic_ctrl_matmul (
     assign has_k_rem = (k_rem_r != 'h0);
 
     assign isram_addr_max = PARAM_M_I;
-    assign wsram_addr_max = is_last_k && has_k_rem ? k_rem_r : `PARAM_WIDTH'd`PE_ROW;
+    // assign wsram_addr_max = is_last_k && has_k_rem ? k_rem_r : `PARAM_WIDTH'd`PE_ROW;
+    assign wsram_addr_max = is_last_n && has_k_rem ? k_rem_r : `PARAM_WIDTH'd`PE_ROW;
     assign psram_addr_max = PARAM_M_I;
 
     assign isram_load_mask = is_last_k & has_k_rem ? ((1 << k_rem_r)-1) : ((1 << `PE_ROW)-1);
@@ -105,7 +106,7 @@ module systolic_ctrl_matmul (
                 next_state = is_wsram_addr_max ? (1 << ST_LD_MAT_A) : (1 << ST_LD_MAT_B);
             end
             current_state_r[ST_LD_MAT_A]: begin
-                next_state = is_isram_addr_max ? (is_last_n ? (1 << ST_WAIT_MATMUL) : (1 << ST_LD_MAT_B)) : (1 << ST_LD_MAT_A);
+                next_state = is_isram_addr_max ? (is_last_n & is_last_k ? (1 << ST_WAIT_MATMUL) : (1 << ST_LD_MAT_B)) : (1 << ST_LD_MAT_A);
             end
             current_state_r[ST_WAIT_MATMUL]: begin
                 next_state = is_matmul_done ? (1 << ST_DONE) : (1 << ST_WAIT_MATMUL);
@@ -154,13 +155,18 @@ module systolic_ctrl_matmul (
             if (is_psram_addr_max)
                 m_iter_r <= m_iter_r + `PARAM_WIDTH'd1;
 
+            if (current_state_r[ST_LD_MAT_B] | current_state_r[ST_LD_MAT_A])
+                k_iter_r <= k_iter_r + `PARAM_WIDTH'd1;
+
             if (is_last_k && is_isram_addr_max) begin
                 k_iter_r <= 'h0;
                 n_iter_r <= n_iter_r + `PARAM_WIDTH'd1;
             end
-            else begin
-                k_iter_r <= k_iter_r + `PARAM_WIDTH'd1;
+
+            if (is_last_k && is_wsram_addr_max) begin
+                k_iter_r <= 'h0;
             end
+
         end
     end
 

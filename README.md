@@ -14,5 +14,6 @@ Note: This hardware is not supported the hardware optimization methods such as,
 These features will be added.
 
 # FPGA Synthesize Option
-Comment out the "SIM" macro in the systolic.vh
-Active "FPGA" macro in the systolic .vh
+1. Comment out the "SIM" macro in the systolic.vh
+
+2. Active "FPGA" macro in the systolic .vh

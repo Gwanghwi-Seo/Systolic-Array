@@ -1,7 +1,7 @@
 `include "common_var.svh"
 
 class Matrix #(parameter WIDTH = 8);
-    rand bit signed [WIDTH-1:0] data[][];
+    bit signed [WIDTH-1:0] data[][];
     
     int rows;
     int cols;
@@ -38,40 +38,64 @@ class Matrix #(parameter WIDTH = 8);
         for (int i = 0; i < rows; i++) begin
             string line = "";
             for (int j = 0; j < cols; j++) begin
-                line = {line, $sformatf("%5d ", data[i][j])};
+                line = {line, $sformatf("%8d ", data[i][j])};
             end
             $display(line);
         end
         $display("------------------------\n");
     endfunction
 
-    function Matrix#(WIDTH) multiply(Matrix#(WIDTH) B);
-        Matrix#(PSUM_WIDTH) C;
-        
+    // function Matrix#(WIDTH) multiply(Matrix#(WIDTH) B);
+    //     Matrix#(`PSUM_WIDTH) C;
+    //     
+    //     if (this.cols != B.rows) begin
+    //         $error("[MatMul Error] Dimension Mismatch: (%0dx%0d) * (%0dx%0d)", 
+    //                this.rows, this.cols, B.rows, B.cols);
+    //         return null;
+    //     end
+
+    //     // 결과 행렬 C 생성 (this.Rows x B.Cols)
+    //     // PSUM_WIDTH 등 오버플로우 고려가 필요하다면 파라미터 조정 필요하지만,
+    //     // 여기서는 기능 구현에 집중
+    //     C = new("Golden_C", this.rows, B.cols);
+
+    //     for (int i = 0; i < this.rows; i++) begin
+    //         for (int j = 0; j < B.cols; j++) begin
+    //             int sum = 0;
+    //             for (int k = 0; k < this.cols; k++) begin
+    //                 sum += this.data[i][k] * B.data[k][j];
+    //             end
+    //             C.data[i][j] = sum;
+    //         end
+    //     end
+    //     
+    //     return C;
+    // endfunction
+
+    // function void multiply(Matrix#(`PSUM_WIDTH) B);
+    function void multiply(ref Matrix B);
+        Matrix#(`PSUM_WIDTH) C;
+
         if (this.cols != B.rows) begin
-            $error("[MatMul Error] Dimension Mismatch: (%0dx%0d) * (%0dx%0d)", 
-                   this.rows, this.cols, B.rows, B.cols);
-            return null;
+           $error("[MatMul Error] Dimension Mismatch: (%0dx%0d) * (%0dx%0d)", 
+                this.rows, this.cols, B.rows, B.cols);
+            $finish(1);
         end
 
-        // 결과 행렬 C 생성 (this.Rows x B.Cols)
-        // PSUM_WIDTH 등 오버플로우 고려가 필요하다면 파라미터 조정 필요하지만,
-        // 여기서는 기능 구현에 집중
         C = new("Golden_C", this.rows, B.cols);
 
         for (int i = 0; i < this.rows; i++) begin
             for (int j = 0; j < B.cols; j++) begin
                 int sum = 0;
                 for (int k = 0; k < this.cols; k++) begin
-                    sum += this.data[i][k] * B.data[k][j];
+                    sum += $signed(this.data[i][k]) * $signed(B.data[k][j]);
                 end
                 C.data[i][j] = sum;
             end
         end
-        
-        return C;
-    endfunction
 
+        C.display();
+    endfunction
 endclass
 
 task automatic set_param(
@@ -167,7 +191,7 @@ function automatic int ceil(int numerator, int denominator);
     return (numerator + denominator - 1) / denominator;
 endfunction
 
-task automatic load_mat_a_sram(ref Matrix mat_a, int dim_m, int dim_n, int dim_k);
+task automatic store_mat_a_sram(ref Matrix mat_a, int dim_m, int dim_n, int dim_k);
     int base_col_idx, col_idx, row_idx;
     
     int max_i = ceil(dim_k, `PE_ROW);
@@ -185,12 +209,16 @@ task automatic load_mat_a_sram(ref Matrix mat_a, int dim_m, int dim_n, int dim_k
 
             if (i == max_i - 1 && has_i_rem) begin
                 for (int k = 0; k < dim_k % `PE_ROW; k++) begin
-                    
+                    col_idx = base_col_idx + k;
+                    // TRG, ADDR, BANK#, DATA
+                    store_sram(`TRG_ISRAM, i*dim_m + row_idx, k, mat_a.get(row_idx, col_idx));
                 end
             end
             else begin
                 for (int k = 0; k < `PE_ROW; k++) begin
-                    
+                    col_idx = base_col_idx + k;
+                    // TRG, ADDR, BANK#, DATA
+                    store_sram(`TRG_ISRAM, i*dim_m + row_idx, k, mat_a.get(row_idx, col_idx));
                 end
             end
         end
@@ -198,6 +226,39 @@ task automatic load_mat_a_sram(ref Matrix mat_a, int dim_m, int dim_n, int dim_k
     
 endtask
 
-task automatic load_mat_b_sram(ref Matrix mat_b, int dim_m, int dim_n, int dim_k);
+task automatic store_mat_b_sram(ref Matrix mat_b, int dim_m, int dim_n, int dim_k);
+    int base_col_idx, col_idx, row_idx;
+
+    int max_i = ceil(dim_m, `PE_COL);
+
+    bit has_i_rem = 0;
+
+    if (dim_n % `PE_COL != 0)
+        has_i_rem = 1'b1;
+
+    for (int i = 0; i < max_i; i++) begin
+        base_col_idx = i * `PE_COL;
+
+        for (int j = 0; j < dim_k; j++) begin
+            row_idx = j;
+
+            if (i == max_i - 1 && has_i_rem) begin
+                for (int k = 0; k < dim_n % `PE_COL; k++) begin
+                    col_idx = base_col_idx + k;
+
+                    // TRG, ADDR, BANK#, DATA
+                    store_sram(`TRG_WSRAM, i*dim_k + row_idx, k, mat_b.get(row_idx, col_idx));
+                end
+            end
+            else begin
+                for (int k = 0; k < `PE_COL; k++) begin
+                    col_idx = base_col_idx + k;
+
+                    // TRG, ADDR, BANK#, DATA
+                    store_sram(`TRG_WSRAM, i*dim_k + row_idx, k, mat_b.get(row_idx, col_idx));
+                end
+            end
+        end
+    end
 
 endtask
