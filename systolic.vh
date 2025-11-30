@@ -7,7 +7,7 @@
 
 // PE_ROW, PE_COL are must be the power of 2 for effecient logic synthesis.
 `define PE_ROW                  8 // if set to 1, it causes a violation(`LOG2(`PE_ROW))
-`define PE_COL                  8
+`define PE_COL                  4
 
 `define PE_ROW_ID_WIDTH         $clog2(`PE_ROW)
 

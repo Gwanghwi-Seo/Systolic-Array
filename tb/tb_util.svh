@@ -223,35 +223,71 @@ task automatic store_mat_a_sram(ref Matrix mat_a, int dim_m, int dim_n, int dim_
 endtask
 
 task automatic store_mat_b_sram(ref Matrix mat_b, int dim_m, int dim_n, int dim_k);
-    int base_col_idx, col_idx, row_idx;
+    // int base_col_idx, col_idx, row_idx;
 
-    int max_i = ceil(dim_m, `PE_COL);
+    // int max_i = ceil(dim_m, `PE_COL);
 
-    bit has_i_rem = 0;
+    // bit has_i_rem = 0;
 
-    if (dim_n % `PE_COL != 0)
-        has_i_rem = 1'b1;
+    // if (dim_n % `PE_COL != 0)
+    //     has_i_rem = 1'b1;
 
-    for (int i = 0; i < max_i; i++) begin
-        base_col_idx = i * `PE_COL;
+    // for (int i = 0; i < max_i; i++) begin
+    //     base_col_idx = i * `PE_COL;
 
-        for (int j = 0; j < dim_k; j++) begin
-            row_idx = j;
+    //     for (int j = 0; j < dim_k; j++) begin
+    //         row_idx = j;
 
-            if (i == max_i - 1 && has_i_rem) begin
-                for (int k = 0; k < dim_n % `PE_COL; k++) begin
-                    col_idx = base_col_idx + k;
+    //         if (i == max_i - 1 && has_i_rem) begin
+    //             for (int k = 0; k < dim_n % `PE_COL; k++) begin
+    //                 col_idx = base_col_idx + k;
+
+    //                 // TRG, ADDR, BANK#, DATA
+    //                 store_sram(`TRG_WSRAM, i*dim_k + row_idx, k, mat_b.get(row_idx, col_idx));
+    //             end
+    //         end
+    //         else begin
+    //             for (int k = 0; k < `PE_COL; k++) begin
+    //                 col_idx = base_col_idx + k;
+
+    //                 // TRG, ADDR, BANK#, DATA
+    //                 store_sram(`TRG_WSRAM, i*dim_k + row_idx, k, mat_b.get(row_idx, col_idx));
+    //             end
+    //         end
+    //     end
+    // end
+
+    int base_wsram_addr;
+    int base_col_idx;
+    int n_rem;
+    bit has_n_rem;
+
+    int n_iter_max;
+    
+    n_iter_max = ceil(dim_n, `PE_COL);
+
+    n_rem = dim_n % `PE_COL;
+    if (n_rem != 0)
+        has_n_rem = 1;
+
+    for (int n = 0; n < n_iter_max; n++) begin
+        for (int k = 0; k < dim_k; k++) begin
+            if (n == n_iter_max - 1 && has_n_rem) begin
+                for (int col_idx = 0; col_idx < n_rem; col_idx++) begin
+                    base_wsram_addr = n*dim_k;
+                    base_col_idx = n*`PE_COL;
 
                     // TRG, ADDR, BANK#, DATA
-                    store_sram(`TRG_WSRAM, i*dim_k + row_idx, k, mat_b.get(row_idx, col_idx));
+                    store_sram(`TRG_WSRAM, base_wsram_addr+k, col_idx, mat_b.get(k, base_col_idx+col_idx));
                 end
             end
             else begin
-                for (int k = 0; k < `PE_COL; k++) begin
-                    col_idx = base_col_idx + k;
+                for (int col_idx = 0; col_idx < `PE_COL; col_idx++) begin
+                    base_wsram_addr = n*dim_k;
+                    base_col_idx = n*`PE_COL;
 
                     // TRG, ADDR, BANK#, DATA
-                    store_sram(`TRG_WSRAM, i*dim_k + row_idx, k, mat_b.get(row_idx, col_idx));
+                    store_sram(`TRG_WSRAM, base_wsram_addr+k, col_idx, mat_b.get(k, base_col_idx+col_idx));
                 end
             end
         end

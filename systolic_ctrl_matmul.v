@@ -104,7 +104,7 @@ module systolic_ctrl_matmul (
                 next_state = (1 << ST_INIT_PSRAM);
             end
             current_state_r[ST_INIT_PSRAM]: begin
-                next_state = is_psram_addr_max ? (1 << ST_LD_MAT_B) : (1 << ST_INIT_PSRAM);
+                next_state = is_psram_addr_max & is_last_n ? (1 << ST_LD_MAT_B) : (1 << ST_INIT_PSRAM);
             end
             current_state_r[ST_LD_MAT_B]: begin
                 next_state = is_wsram_addr_max ? (1 << ST_LD_MAT_A) : (1 << ST_LD_MAT_B);
@@ -155,6 +155,12 @@ module systolic_ctrl_matmul (
 
                 n_rem_r <= (PARAM_N_I & ((1 << $clog2(`PE_COL)) - 1)); // Modulo
                 k_rem_r <= (PARAM_K_I & ((1 << $clog2(`PE_ROW)) - 1));
+            end
+            if (current_state_r[ST_INIT_PSRAM] && is_psram_addr_max) begin
+                if (is_last_n)
+                    n_iter_r <= 'h0;
+                else
+                    n_iter_r <= n_iter_r + 1'd1;
             end
 
             if (current_state_r[ST_LD_MAT_A] && is_isram_addr_max) begin
@@ -208,10 +214,16 @@ module systolic_ctrl_matmul (
 
             // psram addr
             if (current_state_r[ST_INIT_PSRAM]) begin
-                if (is_psram_addr_max)
+                if (is_psram_addr_max) begin
                     psram_addr_r <= 'h0;
-                else
+                    if (is_last_n)
+                        base_psram_addr_r <= 'h0;
+                    else
+                        base_psram_addr_r <= base_psram_addr_r + psram_addr_r + 1'd1;
+                end
+                else begin
                     psram_addr_r <= psram_addr_r + 1'd1;
+                end
             end
 
             if (current_state_r[ST_LD_MAT_A]) begin
@@ -227,13 +239,12 @@ module systolic_ctrl_matmul (
             // isram addr
             if (current_state_r[ST_LD_MAT_A]) begin
                 if (is_isram_addr_max) begin
-                    if (is_last_k) begin
+                    if (is_last_k)
                         base_isram_addr_r <= 'h0;
-                    end
-                    else begin
+                    else 
                         base_isram_addr_r <= base_isram_addr_r + isram_addr_r + 1'd1;
-                        isram_addr_r <= 'h0;
-                    end
+
+                    isram_addr_r <= 'h0;
                 end
                 else begin
                     isram_addr_r <= isram_addr_r + 1'd1;

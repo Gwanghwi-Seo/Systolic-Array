@@ -31,7 +31,7 @@ module tb_top;
         repeat(10) @(posedge CLK);
         RST_N <= 1;
 
-        dim_m = 5;
+        dim_m = 4;
         dim_k = 21;
         dim_n = 5;
 
