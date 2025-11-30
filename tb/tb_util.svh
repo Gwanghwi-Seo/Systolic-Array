@@ -45,34 +45,6 @@ class Matrix #(parameter WIDTH = 8);
         $display("------------------------\n");
     endfunction
 
-    // function Matrix#(WIDTH) multiply(Matrix#(WIDTH) B);
-    //     Matrix#(`PSUM_WIDTH) C;
-    //     
-    //     if (this.cols != B.rows) begin
-    //         $error("[MatMul Error] Dimension Mismatch: (%0dx%0d) * (%0dx%0d)", 
-    //                this.rows, this.cols, B.rows, B.cols);
-    //         return null;
-    //     end
-
-    //     // 결과 행렬 C 생성 (this.Rows x B.Cols)
-    //     // PSUM_WIDTH 등 오버플로우 고려가 필요하다면 파라미터 조정 필요하지만,
-    //     // 여기서는 기능 구현에 집중
-    //     C = new("Golden_C", this.rows, B.cols);
-
-    //     for (int i = 0; i < this.rows; i++) begin
-    //         for (int j = 0; j < B.cols; j++) begin
-    //             int sum = 0;
-    //             for (int k = 0; k < this.cols; k++) begin
-    //                 sum += this.data[i][k] * B.data[k][j];
-    //             end
-    //             C.data[i][j] = sum;
-    //         end
-    //     end
-    //     
-    //     return C;
-    // endfunction
-
-    // function void multiply(Matrix#(`PSUM_WIDTH) B);
     function void multiply(ref Matrix B);
         Matrix#(`PSUM_WIDTH) C;
 
@@ -175,9 +147,12 @@ task automatic load_sram (
 endtask
 
 task automatic start_matmul();
-    do begin
-        @(posedge CLK);
-    end while(!REQ_CPU_READY_O);
+    // do begin
+    //     @(posedge CLK);
+    // end while(!REQ_CPU_READY_O);
+
+    wait(REQ_CPU_READY_O);
+    @(posedge CLK);
 
     REQ_CPU_OPC_I <= `OPC_MATMUL;
     REQ_CPU_VALID_I <= 1'b1;
@@ -185,6 +160,27 @@ task automatic start_matmul();
 
     @(posedge CLK);
     REQ_CPU_VALID_I <= 0;
+endtask
+
+task automatic show_dut_matmul(int dim_m, int dim_n);
+    do begin
+        @(posedge CLK);
+    end while (!CPL_CPU_VALID_O);
+    $display("==============================================");
+    $display("DUT Matrix C");
+    $display("==============================================");
+     for (int m = 0; m < dim_m; m++) begin
+         for (int n = 0; n < dim_n; n++) begin
+             load_sram(`TRG_PSRAM, m, n);
+
+             do begin
+                 @(posedge CLK);
+             end while (!CPL_CPU_VALID_O);
+             
+             $write("%d ", $signed(CPL_CPU_DATA_O[`PSUM_WIDTH-1:0]));
+         end
+         $display("");
+     end
 endtask
 
 function automatic int ceil(int numerator, int denominator);

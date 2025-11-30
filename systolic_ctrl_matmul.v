@@ -34,38 +34,42 @@ module systolic_ctrl_matmul (
 
     localparam  ST_IDLE         = 0,
                 ST_SET_PARAM    = 1,
-                ST_INIT_PSUM    = 2,
-                ST_LD_MAT_A     = 3,
-                ST_LD_MAT_B     = 4,
-                ST_WAIT_MATMUL  = 5,
-                ST_DONE         = 6;
+                ST_INIT_PSRAM   = 2,
+                ST_LD_MAT_B     = 3,
+                ST_LD_MAT_A     = 4,
+                ST_WAIT_LD_MAT_A= 5,
+                ST_WAIT_MATMUL  = 6,
+                ST_DONE         = 7;
 
-    localparam  NUM_STATE       = 7;
+    localparam  NUM_STATE       = 8;
 
-    reg [NUM_STATE-1:0]         current_state_r;
-    reg [NUM_STATE-1:0]         next_state;
+    reg [NUM_STATE-1:0]        current_state_r;
+    reg [NUM_STATE-1:0]        next_state;
 
-    reg [`PARAM_WIDTH-1:0]      n_rem_r, k_rem_r;
-    reg [`PARAM_WIDTH-1:0]      m_iter_max_r, n_iter_max_r, k_iter_max_r;
-    reg [`PARAM_WIDTH-1:0]      m_iter_r, n_iter_r, k_iter_r;
+    reg [`PARAM_WIDTH-1:0]     n_rem_r, k_rem_r;
+    reg [`PARAM_WIDTH-1:0]     n_iter_max_r, k_iter_max_r;
+    reg [`PARAM_WIDTH-1:0]     n_iter_r, k_iter_r;
 
     reg  [`ADDR_WIDTH-1:0]     base_isram_addr_r, base_wsram_addr_r, base_psram_addr_r;
     reg  [`ADDR_WIDTH-1:0]     isram_addr_r, wsram_addr_r, psram_addr_r;
     wire [`ADDR_WIDTH-1:0]     isram_addr_max, wsram_addr_max, psram_addr_max;
-    wire                        is_isram_addr_max, is_wsram_addr_max, is_psram_addr_max;
-    // reg [`PE_ROW_ID_WIDTH-1:0]  wsram_pe_row_id_r;
 
-    wire                        is_last_m, is_last_n, is_last_k;
-    wire                        has_n_rem, has_k_rem;
+    wire                       is_isram_addr_max, is_wsram_addr_max, is_psram_addr_max;
+    wire                       is_last_n, is_last_k;
+    wire                       has_n_rem, has_k_rem;
 
-    wire [`PE_ROW-1:0]          isram_load_mask;
-    wire [`PE_COL-1:0]          wsram_load_mask, psram_load_mask, psram_init_mask;
+    wire [`PE_ROW-1:0]         isram_load_mask;
+    wire [`PE_COL-1:0]         wsram_load_mask, psram_load_mask, psram_init_mask;
+
+    // ST_LD_MAT_B -> ST_LD_MAT_A
+    reg [`PARAM_WIDTH-1:0]      wait_mat_a_count_r;
+    wire                        is_load_mat_a_done;
 
     // one matmul needs psum loading cycle + `PE_ROW depth
     reg [$clog2(`PE_ROW):0]     wait_matmul_count_r;
     wire                        is_matmul_done;
 
-    assign is_last_m = (m_iter_r == (m_iter_max_r - `PARAM_WIDTH'd1));
+
     assign is_last_n = (n_iter_r == (n_iter_max_r - `PARAM_WIDTH'd1));
     assign is_last_k = (k_iter_r == (k_iter_max_r - `PARAM_WIDTH'd1));
 
@@ -73,8 +77,7 @@ module systolic_ctrl_matmul (
     assign has_k_rem = (k_rem_r != 'h0);
 
     assign isram_addr_max = PARAM_M_I;
-    // assign wsram_addr_max = is_last_k && has_k_rem ? k_rem_r : `PARAM_WIDTH'd`PE_ROW;
-    assign wsram_addr_max = is_last_n && has_k_rem ? k_rem_r : `PARAM_WIDTH'd`PE_ROW;
+    assign wsram_addr_max = is_last_k & has_k_rem ? k_rem_r : `PARAM_WIDTH'd`PE_ROW;
     assign psram_addr_max = PARAM_M_I;
 
     assign isram_load_mask = is_last_k & has_k_rem ? ((1 << k_rem_r)-1) : ((1 << `PE_ROW)-1);
@@ -86,6 +89,7 @@ module systolic_ctrl_matmul (
     assign is_wsram_addr_max = (wsram_addr_r == (wsram_addr_max - `PARAM_WIDTH'd1));
     assign is_psram_addr_max = (psram_addr_r == (psram_addr_max - `PARAM_WIDTH'd1));
 
+    assign is_load_mat_a_done = (wait_mat_a_count_r == (`PE_ROW + PARAM_M_I - 1));
     assign is_matmul_done = (wait_matmul_count_r == ((1 << ($clog2(`PE_ROW)+1)) - 1)); // wait_matmul_count_r == 2*PE_ROW
 
     // State transition comb logic
@@ -97,17 +101,22 @@ module systolic_ctrl_matmul (
                 next_state = START_MATMUL_I ? (1 << ST_SET_PARAM) : (1 << ST_IDLE);
             end
             current_state_r[ST_SET_PARAM]: begin
-                next_state = (1 << ST_INIT_PSUM);
+                next_state = (1 << ST_INIT_PSRAM);
             end
-            current_state_r[ST_INIT_PSUM]: begin
-                next_state = is_psram_addr_max & is_last_m ? (1 << ST_LD_MAT_B) : (1 << ST_INIT_PSUM);
+            current_state_r[ST_INIT_PSRAM]: begin
+                next_state = is_psram_addr_max ? (1 << ST_LD_MAT_B) : (1 << ST_INIT_PSRAM);
             end
             current_state_r[ST_LD_MAT_B]: begin
                 next_state = is_wsram_addr_max ? (1 << ST_LD_MAT_A) : (1 << ST_LD_MAT_B);
             end
             current_state_r[ST_LD_MAT_A]: begin
-                next_state = is_isram_addr_max ? (is_last_n & is_last_k ? (1 << ST_WAIT_MATMUL) : (1 << ST_LD_MAT_B)) : (1 << ST_LD_MAT_A);
+                // next_state = is_isram_addr_max ? (is_last_n & is_last_k ? (1 << ST_WAIT_MATMUL) : (1 << ST_LD_MAT_B)) : (1 << ST_LD_MAT_A);
+                next_state = is_isram_addr_max ? (is_last_n & is_last_k ? (1 << ST_WAIT_MATMUL) : (1 << ST_WAIT_LD_MAT_A)) : (1 << ST_LD_MAT_A);
             end
+            current_state_r[ST_WAIT_LD_MAT_A]: begin
+                next_state = is_load_mat_a_done ? (1 << ST_LD_MAT_B) : (1 << ST_WAIT_LD_MAT_A);
+            end
+            // This state will deleted due to the ST_WAIT_LD_MAT_A state do same behavior
             current_state_r[ST_WAIT_MATMUL]: begin
                 next_state = is_matmul_done ? (1 << ST_DONE) : (1 << ST_WAIT_MATMUL);
             end
@@ -127,11 +136,9 @@ module systolic_ctrl_matmul (
     // Iteration variable
     always @(posedge CLK, negedge RST_N) begin
         if (!RST_N) begin
-            m_iter_r <= 'h0;
             n_iter_r <= 'h0;
             k_iter_r <= 'h0;
 
-            m_iter_max_r <='h0;
             n_iter_max_r <='h0;
             k_iter_max_r <='h0;
 
@@ -140,11 +147,9 @@ module systolic_ctrl_matmul (
         end
         else begin
             if (current_state_r[ST_SET_PARAM]) begin
-                m_iter_r <= 'h0;
                 n_iter_r <= 'h0;
                 k_iter_r <= 'h0;
 
-                m_iter_max_r <= (PARAM_M_I + `PE_COL - 1) >> $clog2(`PE_COL); // ceil operation
                 n_iter_max_r <= (PARAM_N_I + `PE_COL - 1) >> $clog2(`PE_COL);
                 k_iter_max_r <= (PARAM_K_I + `PE_ROW - 1) >> $clog2(`PE_ROW);
 
@@ -152,21 +157,15 @@ module systolic_ctrl_matmul (
                 k_rem_r <= (PARAM_K_I & ((1 << $clog2(`PE_ROW)) - 1));
             end
 
-            if (is_psram_addr_max)
-                m_iter_r <= m_iter_r + `PARAM_WIDTH'd1;
-
-            if (current_state_r[ST_LD_MAT_B] | current_state_r[ST_LD_MAT_A])
-                k_iter_r <= k_iter_r + `PARAM_WIDTH'd1;
-
-            if (is_last_k && is_isram_addr_max) begin
-                k_iter_r <= 'h0;
-                n_iter_r <= n_iter_r + `PARAM_WIDTH'd1;
+            if (current_state_r[ST_LD_MAT_A] && is_isram_addr_max) begin
+                if (is_last_k) begin
+                    k_iter_r <= 'h0;
+                    n_iter_r <= n_iter_r + 1'd1; // note: n_iter will clear when ST_SET_PARAM
+                end
+                else begin
+                    k_iter_r <= k_iter_r + 1'd1;
+                end
             end
-
-            if (is_last_k && is_wsram_addr_max) begin
-                k_iter_r <= 'h0;
-            end
-
         end
     end
 
@@ -181,59 +180,77 @@ module systolic_ctrl_matmul (
             wsram_addr_r <= 'h0;
             psram_addr_r <= 'h0;
 
+            wait_mat_a_count_r <= 'h0;
             wait_matmul_count_r <= 'h0;
         end
         else begin
+            if (current_state_r[ST_SET_PARAM]) begin
+                base_isram_addr_r <= 'h0;
+                base_wsram_addr_r <= 'h0;
+                base_psram_addr_r <= 'h0;
+                
+                wait_matmul_count_r <= 'h0;
+            end
+
             // wsram addr
             if (current_state_r[ST_LD_MAT_B]) begin
                 if (is_wsram_addr_max) begin
                     wsram_addr_r <= 'h0;
-
-                    if (is_last_k)
-                        base_wsram_addr_r <= base_wsram_addr_r + wsram_addr_r;
+                    // Note: 1'd1 means that the range of wsram_addr_r is (0~7)
+                    // , But next base addr should be 8, so 1'd1 is added.
+                    base_wsram_addr_r <= base_wsram_addr_r + wsram_addr_r + 1'd1;
                 end
                 else begin
-                    wsram_addr_r <= wsram_addr_r + 1;
+                    // pe_row_id is same as wsram_addr_r (0~`PE_COL or remainder range)
+                    wsram_addr_r <= wsram_addr_r + 1'd1;
                 end
-
-                // // Note: The pe_row_id must be synchronized with wsram_valid_r
-                // // Due to load wsram consumes 1-cycle,
-                // // Simply assign wsram_pe_row_id = wsram_addr_r is prohibited.
-                // wsram_pe_row_id_r <= wsram_addr_r;
             end
 
             // psram addr
-            if (current_state_r[ST_INIT_PSUM]) begin
-                if (is_last_m && is_psram_addr_max)
+            if (current_state_r[ST_INIT_PSRAM]) begin
+                if (is_psram_addr_max)
                     psram_addr_r <= 'h0;
                 else
                     psram_addr_r <= psram_addr_r + 1'd1;
             end
-            else if (current_state_r[ST_LD_MAT_A]) begin
-                if (is_last_k && is_psram_addr_max)
-                    if (is_last_n)
-                        base_psram_addr_r <= 'h0;
-                    else
-                        base_psram_addr_r <= base_psram_addr_r + psram_addr_r;
+
+            if (current_state_r[ST_LD_MAT_A]) begin
+                if (is_psram_addr_max) begin
+                    psram_addr_r <= 'h0;
+                    if (is_last_k)
+                        base_psram_addr_r <= base_psram_addr_r + psram_addr_r + 1'd1;
+                end
                 else
                     psram_addr_r <= psram_addr_r + 1'd1;
             end
            
             // isram addr
             if (current_state_r[ST_LD_MAT_A]) begin
-                if (is_last_k && is_isram_addr_max) begin
-                    isram_addr_r <= 'h0;
+                if (is_isram_addr_max) begin
+                    if (is_last_k) begin
+                        base_isram_addr_r <= 'h0;
+                    end
+                    else begin
+                        base_isram_addr_r <= base_isram_addr_r + isram_addr_r + 1'd1;
+                        isram_addr_r <= 'h0;
+                    end
                 end
                 else begin
                     isram_addr_r <= isram_addr_r + 1'd1;
                 end
             end
 
+            // wait mat_a load
+            if (current_state_r[ST_WAIT_LD_MAT_A]) begin
+                if (is_load_mat_a_done)
+                    wait_mat_a_count_r <= 'h0;
+                else
+                    wait_mat_a_count_r <= wait_mat_a_count_r + 1'd1;
+            end
+
             // wait matmul count
             if (current_state_r[ST_WAIT_MATMUL])
                 wait_matmul_count_r <= wait_matmul_count_r + 1'd1;
-            else
-                wait_matmul_count_r <= 'h0;
         end
     end
 
@@ -248,9 +265,9 @@ module systolic_ctrl_matmul (
     assign REQ_MAT_WSRAM_EN_O   = current_state_r[ST_LD_MAT_B] ? wsram_load_mask : 'h0;
     assign REQ_MAT_WSRAM_ADDR_O = base_wsram_addr_r + wsram_addr_r;
 
-    assign REQ_MAT_PSRAM_EN_O   = current_state_r[ST_INIT_PSUM] ? psram_init_mask :
+    assign REQ_MAT_PSRAM_EN_O   = current_state_r[ST_INIT_PSRAM] ? psram_init_mask :
                                   current_state_r[ST_LD_MAT_A] ? psram_load_mask : 'h0;
-    assign REQ_MAT_PSRAM_WE_O  = current_state_r[ST_INIT_PSUM] ? 1'b0 : 1'b1;
+    assign REQ_MAT_PSRAM_WE_O  = current_state_r[ST_INIT_PSRAM] ? 1'b0 : 1'b1;
     assign REQ_MAT_PSRAM_ADDR_O = base_psram_addr_r + psram_addr_r;
 
     `ifdef SIM
@@ -261,9 +278,10 @@ module systolic_ctrl_matmul (
             case (1'b1)
                 current_state_r[ST_IDLE]:           sim_current_state = "ST_IDLE";
                 current_state_r[ST_SET_PARAM]:      sim_current_state = "ST_SET_PARAM";
-                current_state_r[ST_INIT_PSUM]:      sim_current_state = "ST_INIT_PSUM";
-                current_state_r[ST_LD_MAT_A]:       sim_current_state = "ST_LD_MAT_A";
+                current_state_r[ST_INIT_PSRAM]:      sim_current_state = "ST_INIT_PSRAM";
                 current_state_r[ST_LD_MAT_B]:       sim_current_state = "ST_LD_MAT_B";
+                current_state_r[ST_LD_MAT_A]:       sim_current_state = "ST_LD_MAT_A";
+                current_state_r[ST_WAIT_LD_MAT_A]:  sim_current_state = "ST_WAIT_LD_MAT_A";
                 current_state_r[ST_WAIT_MATMUL]:    sim_current_state = "ST_WAIT_MATMUL";
                 current_state_r[ST_DONE]:           sim_current_state = "ST_DONE";
                 default:                            sim_current_state = "ST_UNKNOWN";

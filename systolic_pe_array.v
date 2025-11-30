@@ -104,17 +104,43 @@ module systolic_pe_array (
         end
     endgenerate
 
-    generate
-        genvar g;
+    `ifdef SIM
+        generate
+            genvar g;
 
-        wire sim_pearr_mat_psum_valid_o[0:`PE_COL-1];
-        wire [`ADDR_WIDTH-1:0] sim_pearr_mat_psum_addr_o[0:`PE_COL-1];
-        wire [`PSUM_WIDTH-1:0] sim_pearr_mat_psum_data_o[0:`PE_COL-1];
+            wire                        sim_pearr_mat_a_valid_i     [0:`PE_ROW-1];
+            wire [`DATA_WIDTH-1:0]      sim_pearr_mat_a_data_i      [0:`PE_ROW-1];
 
-        for (g = 0; g < `PE_COL; g = g + 1) begin
-            assign sim_pearr_mat_psum_valid_o[g] = PEARR_MAT_PSUM_VALID_O[g];
-            assign sim_pearr_mat_psum_addr_o[g] = PEARR_MAT_PSUM_ADDR_O[`ADDR_WIDTH*g +: `ADDR_WIDTH];
-            assign sim_pearr_mat_psum_data_o[g] = PEARR_MAT_PSUM_DATA_O[`PSUM_WIDTH*g +: `PSUM_WIDTH];
-        end
-    endgenerate
+            wire [`PE_ROW_ID_WIDTH-1:0] sim_pearr_mat_b_pe_row_id_i [0:`PE_COL-1];
+            wire                        sim_pearr_mat_b_valid_i     [0:`PE_COL-1];
+            wire [`DATA_WIDTH-1:0]      sim_pearr_mat_b_data_i      [0:`PE_COL-1];
+
+            wire                        sim_pearr_mat_psum_valid_i[0:`PE_COL-1];
+            wire [`ADDR_WIDTH-1:0]      sim_pearr_mat_psum_addr_i [0:`PE_COL-1];
+            wire [`PSUM_WIDTH-1:0]      sim_pearr_mat_psum_data_i [0:`PE_COL-1];
+
+            wire                        sim_pearr_mat_psum_valid_o[0:`PE_COL-1];
+            wire [`ADDR_WIDTH-1:0]      sim_pearr_mat_psum_addr_o [0:`PE_COL-1];
+            wire [`PSUM_WIDTH-1:0]      sim_pearr_mat_psum_data_o [0:`PE_COL-1];
+
+            for (g = 0; g < `PE_ROW; g = g + 1) begin
+                assign sim_pearr_mat_a_valid_i[g] = PEARR_MAT_A_VALID_I[g];
+                assign sim_pearr_mat_a_data_i[g]  = PEARR_MAT_A_DATA_I[`DATA_WIDTH*g +: `DATA_WIDTH];
+            end
+
+            for (g = 0; g < `PE_COL; g = g + 1) begin
+                assign sim_pearr_mat_b_pe_row_id_i[g] = PEARR_MAT_B_PE_ROW_ID_I[`PE_ROW_ID_WIDTH*g +: `PE_ROW_ID_WIDTH];
+                assign sim_pearr_mat_b_valid_i[g] = PEARR_MAT_B_VALID_I[g];
+                assign sim_pearr_mat_b_data_i[g] = PEARR_MAT_B_DATA_I[`DATA_WIDTH*g +: `DATA_WIDTH];
+
+                assign sim_pearr_mat_psum_valid_i[g] = PEARR_MAT_PSUM_VALID_I[g];
+                assign sim_pearr_mat_psum_addr_i[g] = PEARR_MAT_PSUM_ADDR_I[`ADDR_WIDTH*g +: `ADDR_WIDTH];
+                assign sim_pearr_mat_psum_data_i[g] = PEARR_MAT_PSUM_DATA_I[`PSUM_WIDTH*g +: `PSUM_WIDTH];
+
+                assign sim_pearr_mat_psum_valid_o[g] = PEARR_MAT_PSUM_VALID_O[g];
+                assign sim_pearr_mat_psum_addr_o[g] = PEARR_MAT_PSUM_ADDR_O[`ADDR_WIDTH*g +: `ADDR_WIDTH];
+                assign sim_pearr_mat_psum_data_o[g] = PEARR_MAT_PSUM_DATA_O[`PSUM_WIDTH*g +: `PSUM_WIDTH];
+            end
+        endgenerate
+    `endif
 endmodule

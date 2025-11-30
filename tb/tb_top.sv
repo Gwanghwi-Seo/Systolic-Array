@@ -23,7 +23,6 @@ module tb_top;
         forever #5 CLK = ~CLK;
     end
 
-
     initial begin
         RST_N <= 0;
         REQ_CPU_OPC_I <= 'h0;
@@ -32,9 +31,9 @@ module tb_top;
         repeat(10) @(posedge CLK);
         RST_N <= 1;
 
-        dim_m = 4;
-        dim_k = 4;
-        dim_n = 4;
+        dim_m = 5;
+        dim_k = 21;
+        dim_n = 5;
 
         mat_a = new("mat_a", dim_m, dim_k);
         mat_b = new("mat_b", dim_k, dim_n);
@@ -53,29 +52,10 @@ module tb_top;
         store_mat_b_sram(mat_b, dim_m, dim_n, dim_k);
 
         start_matmul();
+        show_dut_matmul(dim_m, dim_n);
 
-        do begin
-            @(posedge CLK);
-        end while (!CPL_CPU_VALID_O);
-
-        // $display("==============================================");
-        // $display("DUT Matrix C");
-        // $display("==============================================");
-        // for (int m = 0; m < `PE_ROW; m++) begin
-        //     for (int n = 0; n < `PE_COL; n++) begin
-        //         load_sram(`TRG_PSRAM, m, n);
-
-        //         do begin
-        //             @(posedge CLK);
-        //         end while (!CPL_CPU_VALID_O);
-        //         
-        //         $write("%d ", $signed(CPL_CPU_DATA_O[`PSUM_WIDTH-1:0]));
-        //     end
-        //     $display("");
-        // end
-        
-        // // check golden reference
-        // mat_a.multiply(mat_b);
+         // check golden reference
+         mat_a.multiply(mat_b);
 
         repeat(10) @(posedge CLK);
         $finish;
