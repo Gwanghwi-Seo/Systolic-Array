@@ -1,5 +1,9 @@
 `include "common_var.svh"
 
+function automatic int ceil(int numerator, int denominator);
+    return (numerator + denominator - 1) / denominator;
+endfunction
+
 class Matrix #(parameter WIDTH = 8);
     bit signed [WIDTH-1:0] data[][];
     
@@ -163,29 +167,51 @@ task automatic start_matmul();
 endtask
 
 task automatic show_dut_matmul(int dim_m, int dim_n);
-    do begin
-        @(posedge CLK);
-    end while (!CPL_CPU_VALID_O);
+    int base_psram_addr;
+    int psram_addr;
+    int psram_bank_num;
+    int max_psram_bank_num;
+
+    int n_iter_max;
+    int n_rem;
+    bit has_n_rem;
+
+    n_iter_max = ceil(dim_n, `PE_COL);
+    n_rem = dim_n % `PE_COL;
+
+    if (n_rem != 0)
+        has_n_rem = 1;
+
     $display("==============================================");
     $display("DUT Matrix C");
     $display("==============================================");
-     for (int m = 0; m < dim_m; m++) begin
-         for (int n = 0; n < dim_n; n++) begin
-             load_sram(`TRG_PSRAM, m, n);
 
-             do begin
-                 @(posedge CLK);
-             end while (!CPL_CPU_VALID_O);
-             
-             $write("%d ", $signed(CPL_CPU_DATA_O[`PSUM_WIDTH-1:0]));
-         end
-         $display("");
-     end
+    do begin
+        @(posedge CLK);
+    end while (!CPL_CPU_VALID_O);
+
+    for (int n = 0; n < n_iter_max; n++) begin
+        base_psram_addr = n*dim_m;
+
+        for (psram_addr = 0; psram_addr < dim_m; psram_addr++) begin
+            if (n == n_iter_max - 1 && has_n_rem)
+                max_psram_bank_num = n_rem;
+            else
+                max_psram_bank_num = `PE_COL;
+
+            for (psram_bank_num = 0; psram_bank_num < max_psram_bank_num; psram_bank_num++) begin
+                // TRG, ADDR, BANK#
+                load_sram(`TRG_PSRAM, base_psram_addr + psram_addr, psram_bank_num);
+
+                wait(CPL_CPU_VALID_O);
+                @(posedge CLK);
+                $write("%d ", $signed(CPL_CPU_DATA_O[`PSUM_WIDTH-1:0]));
+            end
+            $display("----");
+        end
+    end
 endtask
 
-function automatic int ceil(int numerator, int denominator);
-    return (numerator + denominator - 1) / denominator;
-endfunction
 
 task automatic store_mat_a_sram(ref Matrix mat_a, int dim_m, int dim_n, int dim_k);
     int base_col_idx, col_idx, row_idx;
@@ -223,40 +249,6 @@ task automatic store_mat_a_sram(ref Matrix mat_a, int dim_m, int dim_n, int dim_
 endtask
 
 task automatic store_mat_b_sram(ref Matrix mat_b, int dim_m, int dim_n, int dim_k);
-    // int base_col_idx, col_idx, row_idx;
-
-    // int max_i = ceil(dim_m, `PE_COL);
-
-    // bit has_i_rem = 0;
-
-    // if (dim_n % `PE_COL != 0)
-    //     has_i_rem = 1'b1;
-
-    // for (int i = 0; i < max_i; i++) begin
-    //     base_col_idx = i * `PE_COL;
-
-    //     for (int j = 0; j < dim_k; j++) begin
-    //         row_idx = j;
-
-    //         if (i == max_i - 1 && has_i_rem) begin
-    //             for (int k = 0; k < dim_n % `PE_COL; k++) begin
-    //                 col_idx = base_col_idx + k;
-
-    //                 // TRG, ADDR, BANK#, DATA
-    //                 store_sram(`TRG_WSRAM, i*dim_k + row_idx, k, mat_b.get(row_idx, col_idx));
-    //             end
-    //         end
-    //         else begin
-    //             for (int k = 0; k < `PE_COL; k++) begin
-    //                 col_idx = base_col_idx + k;
-
-    //                 // TRG, ADDR, BANK#, DATA
-    //                 store_sram(`TRG_WSRAM, i*dim_k + row_idx, k, mat_b.get(row_idx, col_idx));
-    //             end
-    //         end
-    //     end
-    // end
-
     int base_wsram_addr;
     int base_col_idx;
     int n_rem;
