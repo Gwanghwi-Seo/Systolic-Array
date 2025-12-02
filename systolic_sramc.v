@@ -216,7 +216,7 @@ module systolic_sramc (
             // PSRAM port 1: write mac result (from pe array)
             `ifdef SIM
                 dpsram #(
-                    .DEPTH(256),
+                    .DEPTH(1024),
                     .ADDR_WIDTH(`ADDR_WIDTH),
                     .DATA_WIDTH(`PSUM_WIDTH)
                 ) U_PSRAM (

@@ -31,9 +31,9 @@ module tb_top;
         repeat(10) @(posedge CLK);
         RST_N <= 1;
 
-        dim_m = 6;
-        dim_k = 21;
-        dim_n = 5;
+        dim_m = 80;
+        dim_k = 80;
+        dim_n = 80;
 
         mat_a = new("mat_a", dim_m, dim_k);
         mat_b = new("mat_b", dim_k, dim_n);

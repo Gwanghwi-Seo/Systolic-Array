@@ -85,7 +85,7 @@ module systolic_ctrl_decoder(
     reg [`PSUM_WIDTH-1:0]       ld_psram_rdata_r;
 
     wire [`PARAM_WIDTH-1:0]     cpl_get_param;
-    wire [`PSUM_WIDTH-1:0]      cpl_ld_sram;
+    wire [31:0]                 cpl_ld_sram;
     wire                        cpl_matmul_done;
 
     // Instruction decoding
@@ -215,9 +215,9 @@ module systolic_ctrl_decoder(
                              (req_param_trg == `PARAM_N) ? param_n_r :
                              (req_param_trg == `PARAM_K) ? param_k_r : 'h0 };
 
-    assign cpl_ld_sram =    (req_sram_trg == `TRG_ISRAM) ? {16'h0, ld_isram_rdata_r} :
-                            (req_sram_trg == `TRG_WSRAM) ? {16'h0, ld_wsram_rdata_r} :
-                            (req_sram_trg == `TRG_PSRAM) ?         ld_psram_rdata_r  : 'h0;
+    assign cpl_ld_sram =    (req_sram_trg == `TRG_ISRAM) ? {{32-`DATA_WIDTH{1'b0}}, ld_isram_rdata_r} :
+                            (req_sram_trg == `TRG_WSRAM) ? {{32-`DATA_WIDTH{1'b0}}, ld_wsram_rdata_r} :
+                            (req_sram_trg == `TRG_PSRAM) ? {{32-`PSUM_WIDTH{ld_psram_rdata_r[23]}}, ld_psram_rdata_r} : 'h0; // sign-extention
 
     assign cpl_matmul_done = (req_opc_r == `OPC_MATMUL) && current_state_r[ST_DONE] ? 1'b1 : 1'b0;
 
