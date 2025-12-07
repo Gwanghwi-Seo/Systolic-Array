@@ -167,13 +167,12 @@ module systolic_sramc (
                 );
             `else // FPGA
                 systolic_isram_sp_1024x8w1 U_ISRAM(
-                    .CLK        (CLK),
-                    .RST_N      (RST_N),
-                    .cen        (cen_isram_bank[row]), // Active low
-                    .wen        (wen_isram_bank[row]), // WR: 0, RD: 1
-                    .a          (a_isram),
-                    .d          (d_isram),
-                    .q          (q_isram_bank[`DATA_WIDTH*row +: `DATA_WIDTH])
+                    .clka       (CLK),
+                    .ena        (~cen_isram_bank[row]), // Active low
+                    .wea        (~wen_isram_bank[row]), // WR: 0, RD: 1
+                    .addra      (a_isram),
+                    .dina       (d_isram),
+                    .douta      (q_isram_bank[`DATA_WIDTH*row +: `DATA_WIDTH])
                 );
             `endif
         end
@@ -197,13 +196,12 @@ module systolic_sramc (
                 );
             `else // FPGA
                 systolic_wsram_sp_1024x8w1 U_WSRAM(
-                    .CLK        (CLK),
-                    .RST_N      (RST_N),
-                    .cen        (cen_wsram_bank[col]), // Active low
-                    .wen        (wen_wsram_bank[col]), // WR: 0, RD: 1
-                    .a          (a_wsram),
-                    .d          (d_wsram),
-                    .q          (q_wsram_bank[`DATA_WIDTH*col +: `DATA_WIDTH])
+                    .clka       (CLK),
+                    .ena        (~cen_wsram_bank[col]), // Active low
+                    .wea        (~wen_wsram_bank[col]), // WR: 0, RD: 1
+                    .addra      (a_wsram),
+                    .dina       (d_wsram),
+                    .douta      (q_wsram_bank[`DATA_WIDTH*col +: `DATA_WIDTH])
                 );
             `endif
         end
@@ -235,8 +233,21 @@ module systolic_sramc (
                     .doutb      (q_psram_p1_bank[`PSUM_WIDTH*col +: `PSUM_WIDTH])
                 );
             `else
-                //
-                ;
+                systolic_psram_dp_256x24w1 U_PSRAM (
+                    .clka       (CLK),
+                    .ena        (~cen_psram_p0_bank[col]), // Active low
+                    .wea        (~wen_psram_p0_bank[col]), // WR: 0, RD: 1
+                    .addra      (a_psram_p0),
+                    .dina       (d_psram_p0),
+                    .douta      (q_psram_p0_bank[`PSUM_WIDTH*col +: `PSUM_WIDTH]),
+
+                    .clkb       (CLK),
+                    .enb        (~cen_psram_p1_bank[col]), // Active low
+                    .web        (~wen_psram_p1_bank[col]), // WR: 0, RD: 1
+                    .addrb      (a_psram_p1_bank[`ADDR_WIDTH*col +: `ADDR_WIDTH]),
+                    .dinb       (d_psram_p1_bank[`PSUM_WIDTH*col +: `PSUM_WIDTH]),
+                    .doutb      (q_psram_p1_bank[`PSUM_WIDTH*col +: `PSUM_WIDTH])
+                );
             `endif
         end
     endgenerate

@@ -123,6 +123,7 @@ module systolic_ctrl_matmul (
             current_state_r[ST_DONE]: begin
                 next_state = (1 << ST_IDLE);
             end
+            default:;
         endcase
     end
 

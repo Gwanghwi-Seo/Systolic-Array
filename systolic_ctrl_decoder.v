@@ -127,6 +127,7 @@ module systolic_ctrl_decoder(
                     `OPC_MATMUL: begin
                         next_state = (1 << ST_MATMUL_REQ);
                     end
+                    default:;
                 endcase
             end
             current_state_r[ST_SRAM_RD_CPL]: begin

@@ -2,7 +2,7 @@
 `ifndef __SYSTOLIC_VH__
 `define __SYSTOLIC_VH__
 
-`define SIM // for simulation, comment out for synthesis (FPGA)
+// `define SIM // for simulation, comment out for synthesis (FPGA)
 // `define VCS // fsdbDumpvars
 
 // PE_ROW, PE_COL are must be the power of 2 for effecient logic synthesis.
